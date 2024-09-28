@@ -1,57 +1,42 @@
-// userUtils.js
+// src/utils/userUtils.js
 
 /**
  * Utility functions for user operations.
- * @module userUtils
+ * This file contains functions that assist with user-related operations such as validation, formatting, and more.
  */
 
 /**
- * Validates user data for registration.
- * @param {Object} userData - The user data to validate.
- * @returns {Object} - Returns an object containing the validation result and error messages if any.
+ * Format a user's name to a standard format.
+ * @param {string} name - The user's name.
+ * @returns {string} - Formatted name.
  */
-function validateUserRegistration(userData) {
-    const errors = {};
-    const { username, password, email } = userData;
-
-    if (!username || username.length < 3) {
-        errors.username = 'Username must be at least 3 characters long.';
+function formatUserName(name) {
+    if (typeof name !== 'string') {
+        throw new TypeError('Expected a string');
     }
-    if (!password || password.length < 6) {
-        errors.password = 'Password must be at least 6 characters long.';
-    }
-    if (!email || !/
-        ^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$
-        /.test(email)) {
-        errors.email = 'Email is not valid.';
-    }
-
-    return {
-        isValid: Object.keys(errors).length === 0,
-        errors
-    };
+    return name.trim().replace(/\s+/g, ' ').replace(/^(\w)|\s+(\w)/g, (match) => match.toUpperCase());
 }
 
 /**
- * Hashes a password using a secure hashing algorithm.
- * @param {string} password - The password to hash.
- * @returns {string} - The hashed password.
+ * Validate email format.
+ * @param {string} email - The email to validate.
+ * @returns {boolean} - True if valid, false otherwise.
  */
-function hashPassword(password) {
-    // Placeholder for hashing functionality (to be implemented using a library like bcrypt)
-    return `hashed_${password}`; // This is a mock implementation.
+function isValidEmail(email) {
+    const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+    return emailRegex.test(email);
 }
 
 /**
- * Generates a random token for user sessions.
- * @returns {string} - A randomly generated token.
+ * Generate a random user ID.
+ * @returns {string} - A random UUID.
  */
-function generateRandomToken() {
-    return require('crypto').randomBytes(32).toString('hex');
+function generateUserId() {
+    return 'user-' + Math.random().toString(36).substr(2, 9);
 }
 
 module.exports = {
-    validateUserRegistration,
-    hashPassword,
-    generateRandomToken
+    formatUserName,
+    isValidEmail,
+    generateUserId,
 };
