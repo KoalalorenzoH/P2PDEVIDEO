@@ -1,62 +1,45 @@
-# User Profile Management
+# User Profile Management Features
 
 ## Overview
-User Profile Management is a crucial feature of the P2PDEVIDEO application, allowing users to manage their profiles effectively. This documentation outlines the functionalities, API endpoints, and usage of the user profile management system.
+User profile management is a crucial feature of the P2PDEVIDEO application, allowing users to create, update, and manage their profiles securely. This document outlines the functionalities, usage, and implementation details of user profile management within the application.
 
 ## Features
-- **Profile Creation**: Users can create a new profile.
-- **Profile Retrieval**: Users can view their profile information.
-- **Profile Update**: Users can update their profile information, including username, email, and other personal details.
-- **Profile Deletion**: Users can delete their profile if needed.
-  
-## API Endpoints
 
-### 1. Create User Profile
-- **Endpoint**: `POST /api/user/profile`
-- **Description**: Creates a new user profile.
-- **Request Body**:
-  ```json
-  {
-    "username": "string",
-    "email": "string",
-    "bio": "string"
-  }
-  ```
-- **Responses**:
-  - `201 Created` - Profile created successfully.
-  - `400 Bad Request` - Validation error.
+### 1. Profile Creation
+- Users can create a new profile by providing necessary information such as username, email, and password.
+- Profile creation includes validation checks to ensure data integrity.
 
-### 2. Retrieve User Profile
-- **Endpoint**: `GET /api/user/profile`
-- **Description**: Retrieves the current user's profile information.
-- **Responses**:
-  - `200 OK` - Successful retrieval of profile data.
-  - `404 Not Found` - Profile does not exist.
+### 2. Profile Retrieval
+- Users can retrieve their profile information at any time.
+- Profile data includes user details such as username, email, roles, and profile picture.
 
-### 3. Update User Profile
-- **Endpoint**: `PUT /api/user/profile`
-- **Description**: Updates the current user's profile information.
-- **Request Body**:
-  ```json
-  {
-    "username": "string",
-    "email": "string",
-    "bio": "string"
-  }
-  ```
-- **Responses**:
-  - `200 OK` - Profile updated successfully.
-  - `400 Bad Request` - Validation error.
+### 3. Profile Update
+- Users have the ability to update their profile information.
+- Changes to the profile require re-validation of the data to prevent malicious inputs.
 
-### 4. Delete User Profile
-- **Endpoint**: `DELETE /api/user/profile`
-- **Description**: Deletes the current user's profile.
-- **Responses**:
-  - `204 No Content` - Profile deleted successfully.
-  - `404 Not Found` - Profile does not exist.
+### 4. Profile Deletion
+- Users can delete their profiles permanently from the system. This action is irreversible and will remove all associated data.
 
-## Validation
-Ensure that all inputs are validated on both client and server sides to prevent any invalid data from being processed.
+### 5. Role Management
+- The system supports various user roles, allowing for differentiated access to features based on user type (e.g., admin, regular user).
+
+## Implementation Details
+
+### Endpoints
+- **POST /api/user/profile**: Create a new user profile.
+- **GET /api/user/profile**: Retrieve the user's profile information.
+- **PUT /api/user/profile**: Update the user's profile information.
+- **DELETE /api/user/profile**: Delete the user's profile.
+
+### Security
+- All profile operations are secured via OAuth 2.0 authentication.
+- Data is encrypted during transmission to protect user information.
+
+### Validation
+- Input validation is conducted through middleware to ensure all data adheres to specified formats.
 
 ## Conclusion
-The user profile management system is designed to provide users with a seamless experience in managing their personal information. Proper API handling and validation are vital to maintaining the integrity of the user data.
+User profile management is designed to be user-friendly while ensuring security and data integrity. This document serves as a guide for developers implementing these features and for users navigating their profile management within the application.
+
+## Next Steps
+- Continue developing and integrating user profile features as outlined in the implementation plan.
