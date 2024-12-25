@@ -1,56 +1,65 @@
-const mongoose = require('mongoose');
-const UserProfile = require('../models/userProfileModel');
+const request = require('supertest');
+const app = require('../../app'); // Import your app
+const UserProfile = require('../../models/userProfile'); // Adjust path as necessary
 
-// Define a test suite for UserProfile model
-describe('UserProfile Model', () => {
+// Sample user profile data for testing
+const sampleProfile = {
+    username: 'testuser',
+    email: 'testuser@example.com',
+    age: 25,
+    bio: 'This is a test user.'
+};
+
+describe('User Profile Management', () => {
     beforeAll(async () => {
-        // Connect to the in-memory database for testing
-        const url = 'mongodb://127.0.0.1/test';
-        await mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+        // Clear existing user profiles before tests
+        await UserProfile.deleteMany({});
     });
 
     afterAll(async () => {
-        // Disconnect from the database after tests
-        await mongoose.connection.close();
+        // Close any connections after tests
+        await UserProfile.deleteMany({});
     });
 
-    // Test for creating a new user profile
-    test('should create a new user profile', async () => {
-        const profileData = { name: 'John Doe', email: 'john.doe@example.com', age: 30 };
-        const userProfile = new UserProfile(profileData);
-        const savedProfile = await userProfile.save();
+    it('should create a new user profile', async () => {
+        const response = await request(app)
+            .post('/api/user/profiles')
+            .send(sampleProfile)
+            .expect(201);
 
-        expect(savedProfile._id).toBeDefined();
-        expect(savedProfile.name).toBe(profileData.name);
-        expect(savedProfile.email).toBe(profileData.email);
-        expect(savedProfile.age).toBe(profileData.age);
+        expect(response.body).toHaveProperty('_id');
+        expect(response.body.username).toBe(sampleProfile.username);
+        expect(response.body.email).toBe(sampleProfile.email);
     });
 
-    // Test for finding a user profile
-    test('should find a user profile by email', async () => {
-        const email = 'john.doe@example.com';
-        const foundProfile = await UserProfile.findOne({ email });
+    it('should get user profile by ID', async () => {
+        const createdProfile = await UserProfile.create(sampleProfile);
+        const response = await request(app)
+            .get(`/api/user/profiles/${createdProfile._id}`)
+            .expect(200);
 
-        expect(foundProfile).toBeDefined();
-        expect(foundProfile.email).toBe(email);
+        expect(response.body).toMatchObject(sampleProfile);
     });
 
-    // Test for updating a user profile
-    test('should update a user profile', async () => {
-        const email = 'john.doe@example.com';
-        const updatedData = { age: 31 };
-        await UserProfile.updateOne({ email }, { $set: updatedData });
+    it('should update a user profile', async () => {
+        const createdProfile = await UserProfile.create(sampleProfile);
+        const updatedProfile = { ...sampleProfile, age: 30 };
 
-        const updatedProfile = await UserProfile.findOne({ email });
-        expect(updatedProfile.age).toBe(updatedData.age);
+        const response = await request(app)
+            .put(`/api/user/profiles/${createdProfile._id}`)
+            .send(updatedProfile)
+            .expect(200);
+
+        expect(response.body.age).toBe(30);
     });
 
-    // Test for deleting a user profile
-    test('should delete a user profile', async () => {
-        const email = 'john.doe@example.com';
-        await UserProfile.deleteOne({ email });
+    it('should delete a user profile', async () => {
+        const createdProfile = await UserProfile.create(sampleProfile);
+        await request(app)
+            .delete(`/api/user/profiles/${createdProfile._id}`)
+            .expect(204);
 
-        const deletedProfile = await UserProfile.findOne({ email });
-        expect(deletedProfile).toBeNull();
+        const findProfile = await UserProfile.findById(createdProfile._id);
+        expect(findProfile).toBeNull();
     });
 });
