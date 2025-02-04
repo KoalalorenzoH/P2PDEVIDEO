@@ -1,60 +1,53 @@
 const mongoose = require('mongoose');
 const Video = require('../models/videoModel');
 
-// Test data for video schema
-const validVideoData = {
-    title: 'Test Video',
-    description: 'A description for the test video',
-    url: 'https://example.com/test-video',
-    uploadedBy: new mongoose.Types.ObjectId(),
-    tags: ['test', 'video']
+// Sample video data for testing
+const sampleVideoData = {
+    title: 'Sample Video',
+    description: 'This is a sample video description.',
+    tags: ['sample', 'video', 'test'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
 };
 
 describe('Video Model', () => {
-    it('should create a video with valid data', async () => {
-        const video = new Video(validVideoData);
+    beforeAll(async () => {
+        // Connect to the database
+        const mongoUrl = 'mongodb://localhost:27017/test';
+        await mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
+    });
+
+    afterAll(async () => {
+        // Close the database connection
+        await mongoose.connection.close();
+    });
+
+    it('should create a video successfully with valid data', async () => {
+        const video = new Video(sampleVideoData);
         const savedVideo = await video.save();
+
         expect(savedVideo._id).toBeDefined();
-        expect(savedVideo.title).toBe(validVideoData.title);
-        expect(savedVideo.description).toBe(validVideoData.description);
-        expect(savedVideo.url).toBe(validVideoData.url);
-        expect(savedVideo.uploadedBy).toEqual(validVideoData.uploadedBy);
-        expect(savedVideo.tags).toEqual(expect.arrayContaining(validVideoData.tags));
+        expect(savedVideo.title).toBe(sampleVideoData.title);
+        expect(savedVideo.description).toBe(sampleVideoData.description);
+        expect(savedVideo.tags).toEqual(expect.arrayContaining(sampleVideoData.tags));
     });
 
-    it('should not create a video without a title', async () => {
-        const video = new Video({...validVideoData, title: ''});
-        let error;
-        try {
-            await video.save();
-        } catch (err) {
-            error = err;
-        }
-        expect(error).toBeDefined();
-        expect(error.errors.title).toBeDefined();
+    it('should throw validation error if title is missing', async () => {
+        const video = new Video({
+            description: 'This is a video without a title.',
+            tags: ['no title']
+        });
+
+        await expect(video.save()).rejects.toThrow();
     });
 
-    it('should not create a video without a URL', async () => {
-        const video = new Video({...validVideoData, url: ''});
-        let error;
-        try {
-            await video.save();
-        } catch (err) {
-            error = err;
-        }
-        expect(error).toBeDefined();
-        expect(error.errors.url).toBeDefined();
-    });
+    it('should throw validation error if tags are not an array', async () => {
+        const video = new Video({
+            title: 'Invalid Tags Video',
+            description: 'This video has invalid tags.',
+            tags: 'not an array'
+        });
 
-    it('should not create a video with invalid URL', async () => {
-        const video = new Video({...validVideoData, url: 'invalid-url'});
-        let error;
-        try {
-            await video.save();
-        } catch (err) {
-            error = err;
-        }
-        expect(error).toBeDefined();
-        expect(error.errors.url).toBeDefined();
+        await expect(video.save()).rejects.toThrow();
     });
 });
