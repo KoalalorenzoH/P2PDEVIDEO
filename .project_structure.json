@@ -170,11 +170,13 @@
       },
       {
         "phase": "Phase 2.1",
-        "description": "Develop video management endpoints and tests.",
+        "description": "Develop user role management features and tests.",
         "tasks": [
+          "Document video management features",
+          "Implement user role management API endpoints",
           "Create video routes",
-          "Implement tests for video operations",
-          "Document video management features"
+          "Create tests for user role management functionality",
+          "Implement tests for video operations"
         ],
         "estimated_files": 4
       },
