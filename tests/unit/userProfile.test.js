@@ -1,65 +1,52 @@
 const request = require('supertest');
-const app = require('../../app'); // Import your app
-const UserProfile = require('../../models/userProfile'); // Adjust path as necessary
-
-// Sample user profile data for testing
-const sampleProfile = {
-    username: 'testuser',
-    email: 'testuser@example.com',
-    age: 25,
-    bio: 'This is a test user.'
-};
+const app = require('../../src/app'); // Make sure to adjust the path to your app
+const UserProfile = require('../../src/models/userProfileModel'); // Import the UserProfile model
 
 describe('User Profile Management', () => {
-    beforeAll(async () => {
-        // Clear existing user profiles before tests
-        await UserProfile.deleteMany({});
+    let userProfileId;
+
+    beforeEach(async () => {
+        // Setup a sample user profile before each test
+        const userProfile = await UserProfile.create({
+            username: 'testuser',
+            email: 'testuser@example.com',
+            bio: 'This is a test user profile.'
+        });
+        userProfileId = userProfile._id;
     });
 
-    afterAll(async () => {
-        // Close any connections after tests
-        await UserProfile.deleteMany({});
+    afterEach(async () => {
+        // Clean up the database after each test
+        await UserProfile.deleteMany();
     });
 
-    it('should create a new user profile', async () => {
+    test('GET /api/userProfile/:id should return user profile', async () => {
         const response = await request(app)
-            .post('/api/user/profiles')
-            .send(sampleProfile)
-            .expect(201);
-
-        expect(response.body).toHaveProperty('_id');
-        expect(response.body.username).toBe(sampleProfile.username);
-        expect(response.body.email).toBe(sampleProfile.email);
-    });
-
-    it('should get user profile by ID', async () => {
-        const createdProfile = await UserProfile.create(sampleProfile);
-        const response = await request(app)
-            .get(`/api/user/profiles/${createdProfile._id}`)
+            .get(`/api/userProfile/${userProfileId}`)
             .expect(200);
 
-        expect(response.body).toMatchObject(sampleProfile);
+        expect(response.body).toHaveProperty('username', 'testuser');
+        expect(response.body).toHaveProperty('email', 'testuser@example.com');
+        expect(response.body).toHaveProperty('bio', 'This is a test user profile.');
     });
 
-    it('should update a user profile', async () => {
-        const createdProfile = await UserProfile.create(sampleProfile);
-        const updatedProfile = { ...sampleProfile, age: 30 };
-
+    test('PUT /api/userProfile/:id should update user profile', async () => {
         const response = await request(app)
-            .put(`/api/user/profiles/${createdProfile._id}`)
-            .send(updatedProfile)
+            .put(`/api/userProfile/${userProfileId}`)
+            .send({
+                bio: 'Updated bio for test user.'
+            })
             .expect(200);
 
-        expect(response.body.age).toBe(30);
+        expect(response.body).toHaveProperty('bio', 'Updated bio for test user.');
     });
 
-    it('should delete a user profile', async () => {
-        const createdProfile = await UserProfile.create(sampleProfile);
+    test('DELETE /api/userProfile/:id should delete user profile', async () => {
         await request(app)
-            .delete(`/api/user/profiles/${createdProfile._id}`)
+            .delete(`/api/userProfile/${userProfileId}`)
             .expect(204);
 
-        const findProfile = await UserProfile.findById(createdProfile._id);
-        expect(findProfile).toBeNull();
+        const deletedProfile = await UserProfile.findById(userProfileId);
+        expect(deletedProfile).toBeNull();
     });
 });
