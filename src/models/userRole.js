@@ -1,24 +1,30 @@
 const mongoose = require('mongoose');
 
-// Define the schema for user roles in the application
+/**
+ * User Role Schema for MongoDB
+ * This schema defines the structure of user roles within the application.
+ * It includes role name and associated permissions.
+ */
 const userRoleSchema = new mongoose.Schema({
-    name: {
+    roleName: {
         type: String,
         required: true,
         unique: true,
-        trim: true
+        trim: true,
+        minlength: 3,
+        maxlength: 50,
     },
     permissions: {
-        type: [String], // Array of permission strings
-        required: true
+        type: [String],
+        required: true,
+        default: [],
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
 }, { timestamps: true });
 
-// Create a model based on the schema
+/**
+ * User Role Model
+ * The model provides an interface to interact with the user roles collection.
+ */
 const UserRole = mongoose.model('UserRole', userRoleSchema);
 
-module.exports = UserRole; // Export the model to be used in other parts of the application
+module.exports = UserRole;
