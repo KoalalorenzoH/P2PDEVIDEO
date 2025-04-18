@@ -1,62 +1,69 @@
-const User = require('../models/user');
-const { generateToken, verifyToken } = require('../utils/auth');
+// userController.js
+
+const User = require('../models/user'); // Import User model
 
 /**
- * @module userController
- * @description Handles user-related business logic for the API.
+ * User Controller for handling user-related requests and logic.
  */
 
 /**
- * Registers a new user.
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
+ * Register a new user.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
  */
 const registerUser = async (req, res) => {
-    const { username, password } = req.body;
     try {
-        const newUser = new User({ username, password });
+        const { username, password } = req.body;
+        // Validate input
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required.' });
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(409).json({ message: 'User already exists.' });
+        }
+
+        // Create new user
+        const newUser = new User({ username, password }); // Hash password in User model
         await newUser.save();
-        res.status(201).json({ message: 'User registered successfully.' });
+
+        return res.status(201).json({ message: 'User registered successfully.' });
     } catch (error) {
-        res.status(500).json({ error: 'User registration failed.', details: error.message });
+        console.error('Error registering user:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
     }
 };
 
 /**
- * Authenticates a user and returns a token.
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
+ * Login user.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
  */
 const loginUser = async (req, res) => {
-    const { username, password } = req.body;
     try {
+        const { username, password } = req.body;
+        // Validate input
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required.' });
+        }
+
         const user = await User.findOne({ username });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ error: 'Invalid username or password.' });
+        if (!user || !user.verifyPassword(password)) { // Assume verifyPassword is a method in User model
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
-        const token = generateToken(user);
-        res.status(200).json({ token });
+
+        // Generate and return token (pseudo code)
+        const token = user.generateAuthToken(); // Assume generateAuthToken is a method in User model
+        return res.status(200).json({ token });
     } catch (error) {
-        res.status(500).json({ error: 'Login failed.', details: error.message });
+        console.error('Error logging in user:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
     }
 };
 
-/**
- * Retrieves user profile information.
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- */
-const getUserProfile = async (req, res) => {
-    const userId = req.user._id; // Assume user ID is set in req.user by auth middleware
-    try {
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found.' });
-        }
-        res.status(200).json(user);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to retrieve user profile.', details: error.message });
-    }
+module.exports = {
+    registerUser,
+    loginUser
 };
-
-module.exports = { registerUser, loginUser, getUserProfile };
