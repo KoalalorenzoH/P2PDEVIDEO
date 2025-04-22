@@ -1,42 +1,71 @@
-// auth.js - Utility functions for authentication and authorization
+// src/utils/auth.js
+
+/**
+ * Utility functions for authentication processes.
+ * This module provides functions to handle JWT generation,
+ * token validation, and password hashing.
+ */
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
+const SALT_ROUNDS = 10;
+
 /**
- * Generates a JSON Web Token for a given user ID.
+ * Generate a JSON Web Token (JWT) for a given user ID.
+ *
  * @param {string} userId - The ID of the user.
  * @returns {string} - The generated JWT.
  */
-const generateToken = (userId) => {
-    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+function generateToken(userId) {
+    const token = jwt.sign({ id: userId }, SECRET_KEY, { expiresIn: '1h' });
     return token;
-};
+}
 
 /**
- * Hashes a plain text password.
- * @param {string} password - The plain text password.
+ * Hash a password using bcrypt.
+ *
+ * @param {string} password - The password to hash.
  * @returns {Promise<string>} - The hashed password.
  */
-const hashPassword = async (password) => {
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+async function hashPassword(password) {
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     return hashedPassword;
-};
+}
 
 /**
- * Compares a plain text password with a hashed password.
- * @param {string} password - The plain text password.
+ * Validate a password against a hashed password.
+ *
+ * @param {string} password - The plain password.
  * @param {string} hashedPassword - The hashed password.
- * @returns {Promise<boolean>} - True if the passwords match, false otherwise.
+ * @returns {Promise<boolean>} - True if the password matches, false otherwise.
  */
-const comparePasswords = async (password, hashedPassword) => {
-    const match = await bcrypt.compare(password, hashedPassword);
-    return match;
-};
+async function validatePassword(password, hashedPassword) {
+    const isValid = await bcrypt.compare(password, hashedPassword);
+    return isValid;
+}
+
+/**
+ * Middleware to authenticate a JWT token.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ */
+function authenticateToken(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+}
 
 module.exports = {
     generateToken,
     hashPassword,
-    comparePasswords
+    validatePassword,
+    authenticateToken,
 };
