@@ -1,69 +1,71 @@
-// userController.js
-
-const User = require('../models/user'); // Import User model
-
-/**
- * User Controller for handling user-related requests and logic.
- */
+// Import necessary modules
+const User = require('../models/user'); // Assuming user model is defined here
+const bcrypt = require('bcrypt'); // For password hashing
+const jwt = require('jsonwebtoken'); // For generating tokens
 
 /**
- * Register a new user.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
+ * @description Handles user registration.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
  */
 const registerUser = async (req, res) => {
     try {
         const { username, password } = req.body;
-        // Validate input
-        if (!username || !password) {
-            return res.status(400).json({ message: 'Username and password are required.' });
-        }
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            return res.status(409).json({ message: 'User already exists.' });
-        }
-
-        // Create new user
-        const newUser = new User({ username, password }); // Hash password in User model
+        const newUser = new User({ username, password: hashedPassword });
         await newUser.save();
 
-        return res.status(201).json({ message: 'User registered successfully.' });
+        res.status(201).json({ message: 'User registered successfully!' });
     } catch (error) {
-        console.error('Error registering user:', error);
-        return res.status(500).json({ message: 'Internal server error.' });
+        res.status(500).json({ message: 'Error registering user', error });
     }
 };
 
 /**
- * Login user.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
+ * @description Handles user login.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
  */
 const loginUser = async (req, res) => {
     try {
         const { username, password } = req.body;
-        // Validate input
-        if (!username || !password) {
-            return res.status(400).json({ message: 'Username and password are required.' });
-        }
-
         const user = await User.findOne({ username });
-        if (!user || !user.verifyPassword(password)) { // Assume verifyPassword is a method in User model
-            return res.status(401).json({ message: 'Invalid credentials.' });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // Generate and return token (pseudo code)
-        const token = user.generateAuthToken(); // Assume generateAuthToken is a method in User model
-        return res.status(200).json({ token });
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
-        console.error('Error logging in user:', error);
-        return res.status(500).json({ message: 'Internal server error.' });
+        res.status(500).json({ message: 'Error logging in', error });
     }
 };
 
-module.exports = {
-    registerUser,
-    loginUser
+/**
+ * @description Retrieves user profile information.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
+const getUserProfile = async (req, res) => {
+    try {
+        const userId = req.user.id; // Assuming middleware has populated req.user
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ username: user.username });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching user profile', error });
+    }
 };
+
+module.exports = { registerUser, loginUser, getUserProfile };
