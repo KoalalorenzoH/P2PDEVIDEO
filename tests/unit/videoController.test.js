@@ -1,53 +1,50 @@
 const request = require('supertest');
 const express = require('express');
 const videoController = require('../controllers/videoController');
-
 const app = express();
 
-// Set up a test route for the video controller
-app.use('/api/videos', videoController);
+// Set up the express app to use the video controller routes
+app.use(express.json());
+app.use('/videos', videoController);
 
-describe('Video Controller', () => {
-  it('should create a video', async () => {
-    const res = await request(app)
-      .post('/api/videos')
-      .send({ title: 'Test Video', description: 'A test video description' });
-
-    expect(res.statusCode).toEqual(201);
-    expect(res.body).toHaveProperty('video');
+describe('Video Controller Tests', () => {
+  // Test case for creating a video
+  it('should create a new video', async () => {
+    const videoData = { title: 'Test Video', description: 'This is a test video.', url: 'http://example.com/video.mp4' };
+    const response = await request(app).post('/videos').send(videoData);
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('id');
+    expect(response.body.title).toBe(videoData.title);
   });
 
-  it('should get a video by ID', async () => {
-    const videoId = '123'; // Use a valid video ID for the test
-    const res = await request(app)
-      .get(`/api/videos/${videoId}`);
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty('video');
+  // Test case for fetching all videos
+  it('should fetch all videos', async () => {
+    const response = await request(app).get('/videos');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
   });
 
-  it('should return 404 for a non-existent video', async () => {
-    const res = await request(app)
-      .get('/api/videos/999'); // Non-existent ID
-
-    expect(res.statusCode).toEqual(404);
+  // Test case for fetching a specific video by ID
+  it('should fetch a video by ID', async () => {
+    const videoId = '1'; // Replace with a valid ID from your database
+    const response = await request(app).get(`/videos/${videoId}`);
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('id', videoId);
   });
 
+  // Test case for updating a video
   it('should update a video', async () => {
-    const videoId = '123'; // Use a valid video ID for the test
-    const res = await request(app)
-      .put(`/api/videos/${videoId}`)
-      .send({ title: 'Updated Test Video' });
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty('video');
+    const videoId = '1'; // Replace with a valid ID from your database
+    const updatedData = { title: 'Updated Video Title' };
+    const response = await request(app).put(`/videos/${videoId}`).send(updatedData);
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe(updatedData.title);
   });
 
+  // Test case for deleting a video
   it('should delete a video', async () => {
-    const videoId = '123'; // Use a valid video ID for the test
-    const res = await request(app)
-      .delete(`/api/videos/${videoId}`);
-
-    expect(res.statusCode).toEqual(204);
+    const videoId = '1'; // Replace with a valid ID from your database
+    const response = await request(app).delete(`/videos/${videoId}`);
+    expect(response.status).toBe(204);
   });
 });
