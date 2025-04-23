@@ -1,64 +1,46 @@
-# User Role Management Documentation
+# User Role Management Features
 
 ## Overview
-User role management is an essential feature of the P2PDEVIDEO application that allows administrators to define and manage user roles, permissions, and access control. The system supports various roles such as admin, user, and guest, enabling flexible management of user capabilities.
+User role management is a critical part of the P2PDEVIDEO application, allowing for the establishment of different user permissions and access levels. This documentation outlines the features, functionality, and usage of the user role management system.
 
-## Core Features
-- **Role Definition**: Create and manage roles within the application.
-- **Permission Assignment**: Assign specific permissions to each role, controlling what users can do.
-- **Role-Based Access Control (RBAC)**: Implement security measures that restrict access based on user roles.
-- **User Role Association**: Link users to specific roles, determining their access to certain resources and functionalities.
+## Features
+1. **Role Creation**: 
+   - Admin users can create new roles with specific permissions.
+   - Roles can include predefined permissions such as view, edit, delete, and manage users.
 
-## API Endpoints
-### Create Role
-- **Endpoint**: `POST /api/roles`
-- **Description**: Create a new role in the system.
-- **Request Body**:
-  ```json
-  {
-    "roleName": "string",  // Name of the role
-    "permissions": ["string"] // List of permissions for the role
-  }
-  ```
+2. **Role Assignment**: 
+   - Users can be assigned to one or multiple roles.
+   - Role assignment can be done during user registration or modified later by an admin.
 
-### Get Roles
-- **Endpoint**: `GET /api/roles`
-- **Description**: Retrieve a list of all roles.
+3. **Role-Based Access Control (RBAC)**: 
+   - The system implements RBAC to ensure users can only access features and data relevant to their roles.
+   - Access to certain API routes and features will be restricted based on the assigned roles.
 
-### Update Role
-- **Endpoint**: `PUT /api/roles/:id`
-- **Description**: Update an existing role.
-- **Request Body**:
-  ```json
-  {
-    "roleName": "string",
-    "permissions": ["string"]
-  }
-  ```
+4. **Role Management**: 
+   - Admin users can view a list of roles, modify existing roles, or delete roles that are no longer needed.
+   - Updates to roles are logged for auditing purposes.
 
-### Delete Role
-- **Endpoint**: `DELETE /api/roles/:id`
-- **Description**: Remove a role from the system.
-
-### Assign Role to User
-- **Endpoint**: `POST /api/users/:userId/roles`
-- **Description**: Assign a role to a specific user.
-- **Request Body**:
-  ```json
-  {
-    "roleId": "string"  // Role ID to assign
-  }
-  ```
+5. **Permission Management**: 
+   - Permissions associated with roles can be modified at any time.
+   - Changes in permissions reflect immediately in the user interface to ensure real-time access control.
 
 ## Implementation Details
-1. **Data Model**: The role data model should include fields for role name and associated permissions.
-2. **Middleware**: Use middleware for validating requests related to user roles.
-3. **Testing**: Ensure to write unit and integration tests for role management functionalities to verify that the implementation meets the requirements.
+- **Data Model**: The user roles are stored in the MongoDB database, using a schema that defines the role name and associated permissions.
+- **API Endpoints**: The following API endpoints are provided for managing roles:
+  - `POST /api/roles`: Create a new role.
+  - `GET /api/roles`: Retrieve all roles.
+  - `PUT /api/roles/:id`: Update a specific role.
+  - `DELETE /api/roles/:id`: Delete a specific role.
+- **Middleware**: Middleware functions check user permissions before allowing access to certain routes, ensuring that only authorized users can perform sensitive operations.
 
-## Conclusion
-User role management is a critical component of the P2PDEVIDEO application, providing the necessary framework for controlling user access and permissions. Proper implementation and documentation of this feature ensure security and usability within the decentralized network.
+## Usage
+- To create a new role, an admin would send a request to the `POST /api/roles` endpoint with the role details.
+- Role assignments can be managed via the user management interface, allowing admins to easily add or remove roles from users.
 
 ## Next Steps
-- Implement unit tests for user role management functionalities.
-- Develop a user role management controller.
-- Create integration tests for user role management API endpoints.
+- Implement additional integration tests for user role management features.
+- Develop documentation for permission management features.
+- Create unit tests for user role management controller logic.
+
+## Conclusion
+User role management provides essential functionality for controlling access within the P2PDEVIDEO application. Proper implementation ensures that users have appropriate permissions while maintaining the security and integrity of the platform.
