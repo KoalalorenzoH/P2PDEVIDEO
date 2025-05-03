@@ -1,6 +1,8 @@
+// user.js
+
 const mongoose = require('mongoose');
 
-// Define the user schema
+// Define the user schema for MongoDB
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -16,12 +18,12 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        lowercase: true,
         trim: true,
+        lowercase: true,
     },
     role: {
         type: String,
-        enum: ['user', 'admin', 'verified'],
+        enum: ['user', 'admin'],
         default: 'user',
     },
     createdAt: {
@@ -34,13 +36,13 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-// Middleware to update updatedAt field
+// Middleware to update the updatedAt field before saving
 userSchema.pre('save', function(next) {
     this.updatedAt = Date.now();
     next();
 });
 
-// Create user model
+// Create the User model from the schema
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
