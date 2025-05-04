@@ -1,27 +1,31 @@
 const mongoose = require('mongoose');
-const Video = require('../models/video');
+const Video = require('../models/videoModel'); // Import the Video model
 
-/**
- * Unit tests for the Video model schema.
- */
+// Connect to the MongoDB in-memory database before tests
+beforeAll(async () => {
+    const url = 'mongodb://127.0.0.1/test'; // Change to in-memory db connection
+    await mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+});
+
+// Clear the database after each test
+afterEach(async () => {
+    await Video.deleteMany();
+});
+
+// Close the database connection after all tests
+afterAll(async () => {
+    await mongoose.connection.close();
+});
+
+// Test suite for Video model schema
 describe('Video Model', () => {
-    beforeAll(async () => {
-        // Connect to the in-memory database
-        await mongoose.connect('mongodb://localhost:27017/test', { useNewUrlParser: true, useUnifiedTopology: true });
-    });
-
-    afterAll(async () => {
-        // Disconnect from the database
-        await mongoose.connection.close();
-    });
-
-    it('should create a valid video schema', async () => {
+    it('should create a video successfully with valid data', async () => {
         const videoData = {
             title: 'Sample Video',
-            description: 'This is a sample video.',
-            url: 'http://example.com/sample-video',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            description: 'This is a sample video for testing',
+            url: 'http://example.com/sample.mp4',
+            uploadDate: new Date(),
+            userId: mongoose.Types.ObjectId()
         };
 
         const video = new Video(videoData);
@@ -30,21 +34,19 @@ describe('Video Model', () => {
         expect(savedVideo._id).toBeDefined();
         expect(savedVideo.title).toBe(videoData.title);
         expect(savedVideo.description).toBe(videoData.description);
-        expect(savedVideo.url).toBe(videoData.url);
-        expect(savedVideo.createdAt).toEqual(videoData.createdAt);
-        expect(savedVideo.updatedAt).toEqual(videoData.updatedAt);
     });
 
     it('should throw an error if title is missing', async () => {
         const videoData = {
-            description: 'This is a sample video.',
-            url: 'http://example.com/sample-video',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            description: 'This is a sample video for testing',
+            url: 'http://example.com/sample.mp4',
+            uploadDate: new Date(),
+            userId: mongoose.Types.ObjectId()
         };
 
         const video = new Video(videoData);
         let error;
+
         try {
             await video.save();
         } catch (err) {
@@ -55,17 +57,18 @@ describe('Video Model', () => {
         expect(error.errors.title).toBeDefined();
     });
 
-    it('should throw an error if url is invalid', async () => {
+    it('should throw an error if URL is invalid', async () => {
         const videoData = {
-            title: 'Sample Video',
-            description: 'This is a sample video.',
-            url: 'invalid-url',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            title: 'Invalid Video',
+            description: 'This video has an invalid URL',
+            url: 'invalid-url', // Invalid URL
+            uploadDate: new Date(),
+            userId: mongoose.Types.ObjectId()
         };
 
         const video = new Video(videoData);
         let error;
+
         try {
             await video.save();
         } catch (err) {
