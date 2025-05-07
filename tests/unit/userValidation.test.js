@@ -1,28 +1,53 @@
-const request = require('supertest');
-const express = require('express');
-const userValidation = require('../middleware/userValidation');
+const userValidation = require('../../src/utils/userValidation');
 
-const app = express();
-app.use(express.json());
-
-app.post('/test-validation', userValidation, (req, res) => {
-    res.status(200).send('Validation passed!');
-});
-
-describe('User Validation Middleware', () => {
-    test('should return 400 if the user data is invalid', async () => {
-        const response = await request(app)
-            .post('/test-validation')
-            .send({ username: '', password: '' }); // Invalid data
-        expect(response.statusCode).toBe(400);
-        expect(response.text).toBe('Invalid user data'); // Assuming this is the error message you send
+describe('User Validation Utilities', () => {
+    // Test for valid user data
+    test('valid user data should pass validation', () => {
+        const validUser = {
+            username: 'validUser123',
+            password: 'ValidPassword!123',
+            email: 'validuser@example.com'
+        };
+        expect(userValidation.validateUser(validUser)).toBe(true);
     });
 
-    test('should call next if the user data is valid', async () => {
-        const response = await request(app)
-            .post('/test-validation')
-            .send({ username: 'validUser', password: 'SecurePassword123' }); // Valid data
-        expect(response.statusCode).toBe(200);
-        expect(response.text).toBe('Validation passed!');
+    // Test for invalid username
+    test('invalid username should fail validation', () => {
+        const invalidUser = {
+            username: '',
+            password: 'ValidPassword!123',
+            email: 'validuser@example.com'
+        };
+        expect(userValidation.validateUser(invalidUser)).toBe(false);
+    });
+
+    // Test for invalid password
+    test('invalid password should fail validation', () => {
+        const invalidUser = {
+            username: 'validUser123',
+            password: 'short',
+            email: 'validuser@example.com'
+        };
+        expect(userValidation.validateUser(invalidUser)).toBe(false);
+    });
+
+    // Test for invalid email
+    test('invalid email should fail validation', () => {
+        const invalidUser = {
+            username: 'validUser123',
+            password: 'ValidPassword!123',
+            email: 'invalidEmail'
+        };
+        expect(userValidation.validateUser(invalidUser)).toBe(false);
+    });
+
+    // Test for missing fields
+    test('missing fields should fail validation', () => {
+        const invalidUser = {
+            username: 'validUser123',
+            password: ''
+            // Missing email
+        };
+        expect(userValidation.validateUser(invalidUser)).toBe(false);
     });
 });
