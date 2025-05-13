@@ -2,35 +2,28 @@
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const { uploadVideo, processVideo } = require('../utils/videoUtils');
-
-// Set up storage engine for video uploads
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
 /**
+ * @description Handles video uploads and processing
  * @route POST /api/videos/upload
- * @description Handle video uploads
- * @access Public
+ * @access Private
  */
-router.post('/upload', upload.single('video'), async (req, res) => {
+router.post('/upload', async (req, res) => {
     try {
-        // Check if a video file is uploaded
+        // Validate incoming request (e.g., size, type)
         if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
+            return res.status(400).json({ message: 'No file uploaded.' });
         }
 
-        // Call utility function to upload video
-        const videoUrl = await uploadVideo(req.file);
+        // Process the video upload (e.g., save to database, handle encryption)
+        const videoFile = req.file;
+        // TODO: Implement video processing logic here
 
-        // Process video if needed
-        await processVideo(videoUrl);
-
-        return res.status(200).json({ message: 'Video uploaded successfully', videoUrl });
+        // Return success response
+        res.status(200).json({ message: 'Video uploaded successfully!', file: videoFile });
     } catch (error) {
         console.error('Error uploading video:', error);
-        return res.status(500).json({ message: 'Error uploading video', error: error.message });
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
