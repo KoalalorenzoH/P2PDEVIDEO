@@ -2,36 +2,21 @@
 
 const express = require('express');
 const router = express.Router();
+const userController = require('../controllers/userController');
 
-// Import user controller functions
-const { registerUser, loginUser, getUserProfile, updateUserProfile } = require('../controllers/userController');
+// Route for user registration
+router.post('/register', userController.register);
 
-/**
- * @route POST /api/users/register
- * @desc Register a new user
- * @access Public
- */
-router.post('/register', registerUser);
+// Route for user login
+router.post('/login', userController.login);
 
-/**
- * @route POST /api/users/login
- * @desc Login user
- * @access Public
- */
-router.post('/login', loginUser);
+// Route for getting user profile
+router.get('/:userId/profile', userController.getProfile);
 
-/**
- * @route GET /api/users/profile
- * @desc Get user profile
- * @access Private
- */
-router.get('/profile', getUserProfile);
+// Route for updating user profile
+router.put('/:userId/profile', userController.updateProfile);
 
-/**
- * @route PUT /api/users/profile
- * @desc Update user profile
- * @access Private
- */
-router.put('/profile', updateUserProfile);
+// Route for deleting user account
+router.delete('/:userId', userController.deleteAccount);
 
 module.exports = router;
