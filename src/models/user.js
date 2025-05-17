@@ -1,32 +1,45 @@
 const mongoose = require('mongoose');
 
-// Define the user schema for MongoDB
+// Define user schema for MongoDB
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    roles: { type: [String], default: ['user'] }, // e.g., ['user', 'admin']
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    username: {  // Username for user identification
+        type: String,
+        required: true,
+        unique: true,
+        trim: true
+    },
+    password: {  // Password for user authentication
+        type: String,
+        required: true
+    },
+    email: {  // Email address for user communication
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        lowercase: true
+    },
+    roles: {  // User roles for authorization
+        type: [String],
+        default: ['user']
+    },
+    createdAt: {  // Timestamp for user creation
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {  // Timestamp for last update
+        type: Date,
+        default: Date.now
+    }
 });
 
-// Pre-save hook to update the timestamp
+// Middleware to update updatedAt field before saving
 userSchema.pre('save', function(next) {
     this.updatedAt = Date.now();
     next();
 });
 
-// Method to generate a user profile (excluding sensitive data)
-userSchema.methods.getPublicProfile = function() {
-    return {
-        username: this.username,
-        email: this.email,
-        roles: this.roles,
-        createdAt: this.createdAt
-    };
-};
-
-// Create the User model based on the user schema
+// Create user model from schema
 const User = mongoose.model('User', userSchema);
 
-module.exports = User;
+module.exports = User;  // Export the User model for use in other files
