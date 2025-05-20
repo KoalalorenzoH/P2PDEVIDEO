@@ -1,63 +1,92 @@
 # User Validation Guide
 
-This document provides a comprehensive overview of the user validation features implemented in the P2PDEVIDEO project. User validation is essential for ensuring that the users of our decentralized encrypted peer-to-peer video network are properly authenticated and can access the necessary functionalities based on their permissions.
+This document provides an overview of the user validation processes implemented in the P2PDEVIDEO application. It is essential for ensuring that user data is accurate, secure, and adheres to the application’s policies.
 
-## Overview of User Validation
+## Overview
+User validation is a critical step in the registration and profile management process. It ensures that user inputs meet the required criteria before they are processed further. This guide will cover the following aspects of user validation:
 
-User validation involves checking the inputs provided by users during registration and profile updates to ensure they meet certain criteria. This helps maintain the integrity and security of user data in the system.
+1. **Validation Rules**  
+   Detailed description of the rules applied during user validation.
+2. **Validation Middleware**  
+   Explanation of how middleware is used to validate user data during requests.
+3. **Error Handling**  
+   Strategies for handling validation errors and providing feedback to users.
+4. **Testing User Validation**  
+   Overview of the tests implemented to ensure validation works as expected.
 
-### Key Features of User Validation
-1. **Registration Validation**: Validates user inputs during the registration process, including username, email, and password strength.
-2. **Profile Update Validation**: Ensures that any updates to user profiles comply with validation rules.
-3. **Role-based Validation**: Validates user actions based on their assigned roles and permissions.
+## 1. Validation Rules
+The following rules are applied during user validation:
+- **Username**: Must be between 3 and 20 characters, alphanumeric, and unique.
+- **Email**: Must follow a valid email format and be unique.
+- **Password**: Must be at least 8 characters long, containing at least one uppercase letter, one lowercase letter, one digit, and one special character.
+- **Profile Information**: Fields such as age, location, and bio should meet specific criteria defined in the schema.
 
-## Registration Validation
-During user registration, the following checks are performed:
-- **Username**: Must be unique and meet a minimum character length.
-- **Email**: Must be in a valid email format and not already in use.
-- **Password**: Should meet complexity requirements (e.g., minimum length, inclusion of special characters).
+## 2. Validation Middleware
+The validation middleware is implemented within the `src/middleware/userValidation.js` file. This middleware intercepts requests to the user registration and profile update routes, performing validation checks before proceeding to the controller logic.
 
-### Example Validation Logic
+### Example Middleware Implementation
 ```javascript
-function validateRegistration(data) {
-    const errors = {};
+const { check, validationResult } = require('express-validator');
 
-    if (!data.username || data.username.length < 3) {
-        errors.username = "Username must be at least 3 characters long.";
-    }
-    if (!data.email || !isValidEmail(data.email)) {
-        errors.email = "Email is invalid.";
-    }
-    if (!data.password || data.password.length < 6) {
-        errors.password = "Password must be at least 6 characters long.";
-    }
+const validateUser = [
+    check('username')
+        .isLength({ min: 3, max: 20 })
+        .matches(/^[a-zA-Z0-9]+$/)
+        .withMessage('Username must be alphanumeric and between 3 and 20 characters.'),
+    check('email')
+        .isEmail()
+        .withMessage('Must be a valid email address.'),
+    check('password')
+        .isLength({ min: 8 })
+        .matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+        .withMessage('Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.'),
+];
 
-    return {
-        isValid: Object.keys(errors).length === 0,
-        errors
-    };
+const handleValidationResult = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+};
+
+module.exports = { validateUser, handleValidationResult };
+```
+
+## 3. Error Handling
+When validation fails, the middleware sends a response containing the error messages. It is crucial for the front end to handle these responses and present user-friendly messages. 
+
+### Example Error Response
+```json
+{
+    "errors": [
+        {
+            "msg": "Must be a valid email address.",
+            "param": "email",
+            "location": "body"
+        }
+    ]
 }
 ```
 
-## Profile Update Validation
-When users update their profile information, it is crucial to validate the new data to prevent issues such as invalid email formats or duplicate usernames. Similar validation rules apply as in the registration process.
+## 4. Testing User Validation
+Unit tests for user validation are implemented in the `tests/unit/userValidation.test.js` file. These tests cover various scenarios, ensuring that validation rules are correctly enforced.
 
-## Role-based Validation
-Users have different roles (e.g., admin, viewer) which may dictate what actions they can perform. Role-based validation ensures that users only access features permitted by their assigned roles.
-
-### Example Role-based Check
+### Example Test Case
 ```javascript
-function authorizeUserAction(user, action) {
-    const permissions = getPermissionsForRole(user.role);
-    return permissions.includes(action);
-}
+const request = require('supertest');
+const app = require('../../src/app');
+
+describe('User Validation', () => {
+    it('should return error for invalid email', async () => {
+        const response = await request(app)
+            .post('/api/users/register')
+            .send({ username: 'testUser', email: 'invalidEmail', password: 'Test@123' });
+        expect(response.status).toBe(400);
+        expect(response.body.errors[0].msg).toBe('Must be a valid email address.');
+    });
+});
 ```
 
 ## Conclusion
-User validation is a vital component of the P2PDEVIDEO application. Implementing robust validation checks helps protect user data and enhances the overall security of the platform. For more detailed information about specific validation functions, refer to the code documentation in the `src/utils/userValidation.js` file.
-
-## Additional Resources
-- [User Validation Logic](../src/utils/userValidation.js)
-- [API Documentation](../docs/api_documentation.md)
-
----
+This guide outlines the user validation processes in the P2PDEVIDEO application. Proper validation is essential for maintaining the integrity and security of user data. For further details, refer to the codebase and associated tests for implementation specifics.
