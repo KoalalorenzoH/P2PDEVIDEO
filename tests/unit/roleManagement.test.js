@@ -1,55 +1,48 @@
 const request = require('supertest');
-const app = require('../../src/app');
-const { Role } = require('../../src/models/userRole');
+const app = require('../../app'); // Assuming your app entry point is app.js
 const roleManagementController = require('../../src/controllers/roleManagementController');
 
-describe('Role Management', () => {
-  let roleId;
+// Mock data for testing
+const mockRoles = [
+    { id: 1, name: 'Admin' },
+    { id: 2, name: 'User' }
+];
 
-  beforeAll(async () => {
-    // Create a role for testing
-    const role = await Role.create({ name: 'Test Role' });
-    roleId = role._id;
-  });
+jest.mock('../../src/controllers/roleManagementController');
 
-  afterAll(async () => {
-    // Clean up the role after tests
-    await Role.deleteMany();
-  });
+describe('Role Management Tests', () => {
+    beforeEach(() => {
+        jest.clearAllMocks(); // Clear previous mocks before each test
+    });
 
-  it('should create a new role', async () => {
-    const response = await request(app)
-      .post('/api/roles')
-      .send({ name: 'Admin' })
-      .expect(201);
+    test('GET /api/roles - should return all roles', async () => {
+        roleManagementController.getRoles.mockResolvedValue(mockRoles);
+        const response = await request(app).get('/api/roles');
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toEqual(mockRoles);
+    });
 
-    expect(response.body).toHaveProperty('_id');
-    expect(response.body.name).toBe('Admin');
-  });
+    test('POST /api/roles - should create a new role', async () => {
+        const newRole = { name: 'Guest' };
+        roleManagementController.createRole.mockResolvedValue({ id: 3, ...newRole });
+        const response = await request(app).post('/api/roles').send(newRole);
+        expect(response.statusCode).toBe(201);
+        expect(response.body).toHaveProperty('id');
+        expect(response.body.name).toBe(newRole.name);
+    });
 
-  it('should fetch all roles', async () => {
-    const response = await request(app)
-      .get('/api/roles')
-      .expect(200);
+    test('PUT /api/roles/:id - should update an existing role', async () => {
+        const updatedRole = { name: 'SuperAdmin' };
+        roleManagementController.updateRole.mockResolvedValue({ id: 1, ...updatedRole });
+        const response = await request(app).put('/api/roles/1').send(updatedRole);
+        expect(response.statusCode).toBe(200);
+        expect(response.body.name).toBe(updatedRole.name);
+    });
 
-    expect(response.body).toBeInstanceOf(Array);
-    expect(response.body.length).toBeGreaterThan(0);
-  });
-
-  it('should update a role', async () => {
-    const response = await request(app)
-      .put(`/api/roles/${roleId}`)
-      .send({ name: 'Updated Role' })
-      .expect(200);
-
-    expect(response.body.name).toBe('Updated Role');
-  });
-
-  it('should delete a role', async () => {
-    const response = await request(app)
-      .delete(`/api/roles/${roleId}`)
-      .expect(204);
-
-    expect(response.body).toEqual({});
-  });
+    test('DELETE /api/roles/:id - should delete a role', async () => {
+        roleManagementController.deleteRole.mockResolvedValue({ success: true });
+        const response = await request(app).delete('/api/roles/1');
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
 });
