@@ -1,50 +1,58 @@
 # Video Management Integration Tests
 
-This document outlines the integration tests for the Video Management features of the P2PDEVIDEO application. Integration tests ensure that the various components of the video management system work together as expected.
+This document outlines the integration tests for the video management features of the P2PDEVIDEO application. The purpose of these tests is to ensure that the video upload, retrieval, and management functionalities work seamlessly together within the application.
 
 ## Overview
-The Video Management component is responsible for handling video uploads, management, and retrieval. The integration tests will focus on the following functionalities:
+
+The video management features include:
 - Uploading videos
 - Retrieving video metadata
-- Managing video access and permissions
+- Deleting videos
+- Updating video information
 
-## Testing Framework
-We will use [Jest](https://jestjs.io/) as our testing framework along with [Supertest](https://www.npmjs.com/package/supertest) for HTTP assertions. Ensure that these packages are included in your `package.json`:
+Integration tests will verify that these functionalities interact correctly with each other and that the overall user experience is maintained.
 
-```json
-"devDependencies": {
-    "jest": "^27.0.0",
-    "supertest": "^6.0.0"
-}
-```
+## Setup Instructions
 
-## Test Cases
-### 1. Video Upload
-- **Description**: Test if users can successfully upload a video.
-- **Input**: Video file and metadata.
-- **Expected Outcome**: The video should be stored in the database, and a success response should be returned.
-
-### 2. Video Retrieval
-- **Description**: Test if users can retrieve video metadata by video ID.
-- **Input**: Valid video ID.
-- **Expected Outcome**: The metadata for the requested video should be returned.
-
-### 3. Video Access Control
-- **Description**: Test if permissions are correctly enforced when accessing videos.
-- **Input**: Video ID from various user roles.
-- **Expected Outcome**: Users should only be able to access videos they have permission for.
+To run the integration tests for video management, ensure that the following prerequisites are met:
+1. Node.js is installed on your machine.
+2. MongoDB is running and accessible.
+3. The application is set up according to the [setup instructions](./video_management_guide.md).
 
 ## Running the Tests
-To run the integration tests, use the following command:
-```bash
-npm test
-```
 
-Ensure that your development environment is set up correctly, including the database connection and required environment variables.
+1. Navigate to the project directory in your terminal.
+2. Run the following command to execute the integration tests:
+   ```bash
+   npm test -- tests/integration/videoManagementIntegration_test.js
+   ```
+
+## Integration Tests
+
+### Test Cases
+
+1. **Test Video Upload**  
+   - **Description**: Verify that a user can upload a video successfully.
+   - **Expected Result**: The video should be stored in the database, and metadata should be returned.
+
+2. **Test Video Retrieval**  
+   - **Description**: Verify that a user can retrieve video metadata after uploading.
+   - **Expected Result**: The metadata should match the uploaded video data.
+
+3. **Test Video Deletion**  
+   - **Description**: Verify that a user can delete a video.
+   - **Expected Result**: The video should no longer be accessible, and the metadata should be removed from the database.
+
+4. **Test Video Update**  
+   - **Description**: Verify that a user can update video information.
+   - **Expected Result**: The updated information should reflect in the database when retrieved.
+
+### Logging and Error Handling
+
+Each test case should log relevant information to the console and handle any errors gracefully. Use assertions to verify expected outcomes and capture failures.
 
 ## Conclusion
-The integration tests for the Video Management component are crucial for ensuring the reliability and functionality of video-related features in the P2PDEVIDEO application. Regularly update these tests as new features are added or existing features are modified.
 
----
+These integration tests are vital in ensuring that the video management features are functioning correctly. Regularly running these tests will help maintain the integrity of the video management system as new features are added or existing ones are modified.
 
-This document should be updated with new test cases as the development progresses. Make sure to review and run integration tests regularly to maintain the quality of the application.
+For further details on the video management features, refer to the [Video Management Guide](./video_management_guide.md).
