@@ -1,8 +1,6 @@
-// roleModel.js
-
 const mongoose = require('mongoose');
 
-// Define the schema for roles
+// Define the Role schema for MongoDB
 const roleSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -10,27 +8,19 @@ const roleSchema = new mongoose.Schema({
         unique: true,
         trim: true,
     },
-    description: {
-        type: String,
-        trim: true,
+    permissions: {
+        type: [String], // Array of permission strings
+        default: [],
     },
     createdAt: {
         type: Date,
         default: Date.now,
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    }
+}, {
+    timestamps: true,
 });
 
-// Middleware to update the updatedAt timestamp before saving
-roleSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
-});
-
-// Create the Role model from the schema
+// Compile the schema into a model
 const Role = mongoose.model('Role', roleSchema);
 
 module.exports = Role;
