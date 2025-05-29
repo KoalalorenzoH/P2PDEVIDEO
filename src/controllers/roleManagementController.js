@@ -1,77 +1,84 @@
-// roleManagementController.js
+// src/controllers/roleManagementController.js
 
-const RoleModel = require('../models/roleModel');
+const Role = require('../models/roleModel');
 
 /**
- * Controller for handling role management logic.
+ * Role Management Controller
+ * Handles all operations related to role management.
  */
 class RoleManagementController {
     /**
      * Create a new role.
-     * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
      */
-    async createRole(req, res) {
+    static async createRole(req, res) {
         try {
-            const { roleName } = req.body;
-            const newRole = new RoleModel({ name: roleName });
+            const { name, permissions } = req.body;
+            if (!name || !permissions) {
+                return res.status(400).json({ message: 'Role name and permissions are required.' });
+            }
+
+            const newRole = new Role({ name, permissions });
             await newRole.save();
-            res.status(201).json({ message: 'Role created successfully', role: newRole });
+            return res.status(201).json({ message: 'Role created successfully.', role: newRole });
         } catch (error) {
-            res.status(500).json({ message: 'Error creating role', error: error.message });
+            return res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }
 
     /**
      * Get all roles.
-     * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
      */
-    async getAllRoles(req, res) {
+    static async getAllRoles(req, res) {
         try {
-            const roles = await RoleModel.find();
-            res.status(200).json(roles);
+            const roles = await Role.find();
+            return res.status(200).json(roles);
         } catch (error) {
-            res.status(500).json({ message: 'Error fetching roles', error: error.message });
+            return res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }
 
     /**
-     * Update a role by ID.
-     * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
+     * Update an existing role.
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
      */
-    async updateRole(req, res) {
+    static async updateRole(req, res) {
         try {
-            const { id } = req.params;
-            const { roleName } = req.body;
-            const updatedRole = await RoleModel.findByIdAndUpdate(id, { name: roleName }, { new: true });
+            const { roleId } = req.params;
+            const updates = req.body;
+            const updatedRole = await Role.findByIdAndUpdate(roleId, updates, { new: true });
+
             if (!updatedRole) {
-                return res.status(404).json({ message: 'Role not found' });
+                return res.status(404).json({ message: 'Role not found.' });
             }
-            res.status(200).json({ message: 'Role updated successfully', role: updatedRole });
+            return res.status(200).json({ message: 'Role updated successfully.', role: updatedRole });
         } catch (error) {
-            res.status(500).json({ message: 'Error updating role', error: error.message });
+            return res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }
 
     /**
-     * Delete a role by ID.
-     * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
+     * Delete a role.
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
      */
-    async deleteRole(req, res) {
+    static async deleteRole(req, res) {
         try {
-            const { id } = req.params;
-            const deletedRole = await RoleModel.findByIdAndDelete(id);
+            const { roleId } = req.params;
+            const deletedRole = await Role.findByIdAndDelete(roleId);
+
             if (!deletedRole) {
-                return res.status(404).json({ message: 'Role not found' });
+                return res.status(404).json({ message: 'Role not found.' });
             }
-            res.status(200).json({ message: 'Role deleted successfully' });
+            return res.status(200).json({ message: 'Role deleted successfully.' });
         } catch (error) {
-            res.status(500).json({ message: 'Error deleting role', error: error.message });
+            return res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }
 }
 
-module.exports = new RoleManagementController();
+module.exports = RoleManagementController;
