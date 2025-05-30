@@ -1,50 +1,44 @@
 const mongoose = require('mongoose');
 
-// Define the user schema for MongoDB
+// Define user schema for the MongoDB database
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
         unique: true,
-        trim: true,
+        trim: true
+    },
+    password: {
+        type: String,
+        required: true,
+        minlength: 6
     },
     email: {
         type: String,
         required: true,
         unique: true,
         trim: true,
-        lowercase: true,
+        lowercase: true
     },
-    password: {
-        type: String,
-        required: true,
-    },
-    role: {
-        type: String,
-        enum: ['user', 'admin'],
-        default: 'user',
+    roles: {
+        type: [String],
+        default: ['user']
     },
     createdAt: {
         type: Date,
-        default: Date.now,
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
+        default: Date.now
     }
-}, { timestamps: true });
-
-// Pre-save middleware to hash the password (if using bcrypt)
-userSchema.pre('save', async function(next) {
-    if (this.isModified('password')) {
-        // Hash the password here
-        // this.password = await bcrypt.hash(this.password, 10);
-    }
-    next();
 });
 
-// Create the user model from the schema
+// Define methods for user schema
+userSchema.methods = {
+    // Method to validate password
+    validatePassword: function(password) {
+        return this.password === password; // Replace with hashing comparison in production
+    },
+};
+
+// Create user model from the schema
 const User = mongoose.model('User', userSchema);
 
-// Export the user model for use in other parts of the application
 module.exports = User;
