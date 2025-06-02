@@ -1,76 +1,95 @@
 const request = require('supertest');
-const app = require('../../src/app'); // Assuming there's an app.js file that initializes the Express app
-const mongoose = require('mongoose');
+const app = require('../../app'); // Adjust the path to your app
+const RoleManagementController = require('../../src/controllers/roleManagementController');
 
-// Test suite for role management integration
 describe('Role Management Integration Tests', () => {
-  // Connect to the database before running the tests
-  beforeAll(async () => {
-    await mongoose.connect(process.env.MONGODB_URI, { // Ensure you have the connection string set in your environment variables
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    describe('POST /api/roles', () => {
+        it('should create a new role', async () => {
+            const newRole = { name: 'Admin', permissions: ['CREATE', 'READ', 'UPDATE', 'DELETE'] };
+            const response = await request(app)
+                .post('/api/roles')
+                .send(newRole)
+                .expect(201);
+
+            expect(response.body).toHaveProperty('id');
+            expect(response.body.name).toBe(newRole.name);
+        });
+
+        it('should return 400 if role name is missing', async () => {
+            const response = await request(app)
+                .post('/api/roles')
+                .send({ permissions: ['READ'] })
+                .expect(400);
+
+            expect(response.body.message).toBe('Role name is required.');
+        });
     });
-  });
 
-  // Clear the database after each test
-  afterEach(async () => {
-    await mongoose.connection.db.dropDatabase();
-  });
+    describe('GET /api/roles', () => {
+        it('should retrieve all roles', async () => {
+            const response = await request(app)
+                .get('/api/roles')
+                .expect(200);
 
-  // Close the database connection after all tests
-  afterAll(async () => {
-    await mongoose.disconnect();
-  });
+            expect(Array.isArray(response.body)).toBe(true);
+        });
+    });
 
-  test('Create a new role', async () => {
-    const newRole = { name: 'Admin', permissions: ['manage_users', 'manage_content'] };
-    const response = await request(app)
-      .post('/api/roles') // Adjust to your actual API endpoint
-      .send(newRole)
-      .set('Accept', 'application/json');
+    describe('GET /api/roles/:id', () => {
+        it('should retrieve a role by ID', async () => {
+            const roleId = 'some-role-id'; // Replace with an actual role ID after creating one in the setup
+            const response = await request(app)
+                .get(`/api/roles/${roleId}`)
+                .expect(200);
 
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty('name', newRole.name);
-    expect(response.body).toHaveProperty('permissions', newRole.permissions);
-  });
+            expect(response.body).toHaveProperty('id', roleId);
+        });
 
-  test('Get all roles', async () => {
-    await request(app)
-      .post('/api/roles')
-      .send({ name: 'User', permissions: ['view_content'] });
+        it('should return 404 if role not found', async () => {
+            const response = await request(app)
+                .get('/api/roles/non-existing-id')
+                .expect(404);
 
-    const response = await request(app)
-      .get('/api/roles')
-      .set('Accept', 'application/json');
+            expect(response.body.message).toBe('Role not found.');
+        });
+    });
 
-    expect(response.status).toBe(200);
-    expect(response.body.length).toBeGreaterThan(0);
-  });
+    describe('PUT /api/roles/:id', () => {
+        it('should update a role', async () => {
+            const roleId = 'some-role-id'; // Replace with an actual role ID
+            const updatedRole = { name: 'SuperAdmin', permissions: ['ALL'] };
+            const response = await request(app)
+                .put(`/api/roles/${roleId}`)
+                .send(updatedRole)
+                .expect(200);
 
-  test('Update a role', async () => {
-    const newRole = await request(app)
-      .post('/api/roles')
-      .send({ name: 'Editor', permissions: ['edit_content'] });
+            expect(response.body.name).toBe(updatedRole.name);
+        });
 
-    const updatedRole = { name: 'Editor', permissions: ['edit_content', 'publish_content'] };
-    const response = await request(app)
-      .put(`/api/roles/${newRole.body._id}`) // Use the ID of the created role
-      .send(updatedRole)
-      .set('Accept', 'application/json');
+        it('should return 404 if role not found', async () => {
+            const response = await request(app)
+                .put('/api/roles/non-existing-id')
+                .send({ name: 'NewRole' })
+                .expect(404);
 
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('permissions', updatedRole.permissions);
-  });
+            expect(response.body.message).toBe('Role not found.');
+        });
+    });
 
-  test('Delete a role', async () => {
-    const newRole = await request(app)
-      .post('/api/roles')
-      .send({ name: 'Guest', permissions: ['view_content'] });
+    describe('DELETE /api/roles/:id', () => {
+        it('should delete a role', async () => {
+            const roleId = 'some-role-id'; // Replace with an actual role ID
+            await request(app)
+                .delete(`/api/roles/${roleId}`)
+                .expect(204);
+        });
 
-    const response = await request(app)
-      .delete(`/api/roles/${newRole.body._id}`) // Use the ID of the created role
-      .set('Accept', 'application/json');
+        it('should return 404 if role not found', async () => {
+            const response = await request(app)
+                .delete('/api/roles/non-existing-id')
+                .expect(404);
 
-    expect(response.status).toBe(204);
-  });
+            expect(response.body.message).toBe('Role not found.');
+        });
+    });
 });
