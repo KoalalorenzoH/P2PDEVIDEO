@@ -1,52 +1,64 @@
 const request = require('supertest');
-const app = require('../../src/app'); // Assuming app is exported from your main file
-const Video = require('../../src/models/video');
-const { setupDatabase, teardownDatabase } = require('../setup'); // A file to set up and teardown your test database
+const app = require('../../src/app'); // Assuming the app is exported from this file
+const Video = require('../../src/models/videoModel'); // Import the video model
+const { connectDB, disconnectDB } = require('../../src/utils/db'); // Database connection utilities
 
-// Setup and teardown for tests
-beforeAll(setupDatabase);
-afterAll(teardownDatabase);
+// Connect to the database before running the tests
+beforeAll(async () => {
+    await connectDB();
+});
+
+// Clear the database after each test
+afterEach(async () => {
+    await Video.deleteMany({});
+});
+
+// Disconnect the database after all tests
+afterAll(async () => {
+    await disconnectDB();
+});
 
 describe('Video Upload Integration Tests', () => {
-    let videoData;
-
-    beforeEach(() => {
-        // Mock video data for uploading
-        videoData = {
-            title: 'Sample Video',
-            description: 'This is a sample video for testing.',
-            videoFile: 'sample_video.mp4', // Mock video file name
-            userId: 'user123' // Mock user ID
+    it('should upload a video successfully', async () => {
+        const videoData = {
+            title: 'Test Video',
+            description: 'A test video description',
+            file: 'path/to/video.mp4', // Placeholder, adjust as necessary
         };
+
+        const response = await request(app)
+            .post('/api/videos/upload') // Assuming this is the correct endpoint
+            .send(videoData)
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(201);
+        expect(response.body).toHaveProperty('message', 'Video uploaded successfully');
+        expect(response.body).toHaveProperty('videoId');
     });
 
-    it('should upload video successfully', async () => {
+    it('should return an error for missing video data', async () => {
+        const response = await request(app)
+            .post('/api/videos/upload')
+            .send({})
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('error', 'Video data is required');
+    });
+
+    it('should return an error for invalid video format', async () => {
+        const videoData = {
+            title: 'Test Video',
+            description: 'A test video description',
+            file: 'path/to/invalid-format.txt', // Invalid format
+        };
+
         const response = await request(app)
             .post('/api/videos/upload')
             .send(videoData)
-            .expect(201);
+            .set('Content-Type', 'application/json');
 
-        expect(response.body).toHaveProperty('video');
-        expect(response.body.video).toHaveProperty('title', videoData.title);
-        expect(response.body.video).toHaveProperty('description', videoData.description);
-    });
-
-    it('should return error for missing video file', async () => {
-        const response = await request(app)
-            .post('/api/videos/upload')
-            .send({ title: videoData.title, description: videoData.description, userId: videoData.userId })
-            .expect(400);
-
-        expect(response.body).toHaveProperty('error', 'Video file is required.');
-    });
-
-    it('should return error for invalid video format', async () => {
-        const response = await request(app)
-            .post('/api/videos/upload')
-            .attach('videoFile', 'path/to/invalid_format.txt') // Use a text file instead of video
-            .send({ title: videoData.title, description: videoData.description, userId: videoData.userId })
-            .expect(400);
-
-        expect(response.body).toHaveProperty('error', 'Invalid video format.');
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('error', 'Invalid video format');
     });
 });
