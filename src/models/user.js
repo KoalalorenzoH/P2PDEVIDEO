@@ -1,45 +1,51 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
-// Define user schema for MongoDB
+// Define the User schema
 const userSchema = new mongoose.Schema({
-    username: {  // Username for user identification
+    username: {
         type: String,
         required: true,
         unique: true,
         trim: true
     },
-    password: {  // Password for user authentication
-        type: String,
-        required: true
-    },
-    email: {  // Email address for user communication
+    email: {
         type: String,
         required: true,
         unique: true,
         trim: true,
         lowercase: true
     },
-    roles: {  // User roles for authorization
-        type: [String],
-        default: ['user']
+    password: {
+        type: String,
+        required: true,
     },
-    createdAt: {  // Timestamp for user creation
-        type: Date,
-        default: Date.now
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
     },
-    updatedAt: {  // Timestamp for last update
+    createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-// Middleware to update updatedAt field before saving
-userSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
+// Hash the password before saving the user model
+userSchema.pre('save', async function(next) {
+    if (this.isModified('password') || this.isNew) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+    }
     next();
 });
 
-// Create user model from schema
+// Method to compare password during login
+userSchema.methods.comparePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Create the User model
 const User = mongoose.model('User', userSchema);
 
-module.exports = User;  // Export the User model for use in other files
+module.exports = User;
