@@ -1,72 +1,41 @@
-// userProfileValidation.js
+'use strict';
 
 /**
- * Validation logic for user profile operations.
- * This module contains functions to validate user profile data
- * during creation and update operations.
+ * Validation logic for user profile data.
+ * @module userProfileValidation
  */
 
 const { body, validationResult } = require('express-validator');
 
 /**
- * Validate user profile creation inputs.
- * @returns {Array} Array of validation rules.
+ * Validation rules for user profile updates.
+ * @returns {Array} Validation rules array.
  */
-const validateUserProfileCreation = () => {
+const validateUserProfile = () => {
     return [
-        body('username')
-            .isString()
-            .notEmpty()
-            .withMessage('Username is required.'),
+        body('name')
+            .isString().withMessage('Name must be a string.')
+            .isLength({ min: 1 }).withMessage('Name is required.'),
         body('email')
-            .isEmail()
-            .withMessage('Please provide a valid email address.'),
+            .isEmail().withMessage('Invalid email format.')
+            .normalizeEmail(),
         body('age')
             .optional()
-            .isInt({ min: 0 })
-            .withMessage('Age must be a positive integer.'),
+            .isInt({ min: 0 }).withMessage('Age must be a positive integer.'),
         body('bio')
             .optional()
-            .isString()
-            .isLength({ max: 500 })
-            .withMessage('Bio must be less than 500 characters.')
+            .isString().withMessage('Bio must be a string.')
+            .isLength({ max: 500 }).withMessage('Bio must not exceed 500 characters.'),
     ];
 };
 
 /**
- * Validate user profile update inputs.
- * @returns {Array} Array of validation rules.
- */
-const validateUserProfileUpdate = () => {
-    return [
-        body('username')
-            .optional()
-            .isString()
-            .notEmpty()
-            .withMessage('Username cannot be empty if provided.'),
-        body('email')
-            .optional()
-            .isEmail()
-            .withMessage('Please provide a valid email address if provided.'),
-        body('age')
-            .optional()
-            .isInt({ min: 0 })
-            .withMessage('Age must be a positive integer if provided.'),
-        body('bio')
-            .optional()
-            .isString()
-            .isLength({ max: 500 })
-            .withMessage('Bio must be less than 500 characters if provided.')
-    ];
-};
-
-/**
- * Middleware to handle validation errors.
+ * Middleware to validate user profile data.
  * @param {Object} req - The request object.
  * @param {Object} res - The response object.
  * @param {Function} next - The next middleware function.
  */
-const handleValidationErrors = (req, res, next) => {
+const validateUserProfileData = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -75,7 +44,6 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 module.exports = {
-    validateUserProfileCreation,
-    validateUserProfileUpdate,
-    handleValidationErrors
+    validateUserProfile,
+    validateUserProfileData,
 };
