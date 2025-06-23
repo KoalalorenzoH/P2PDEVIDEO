@@ -1,45 +1,67 @@
-# User Profile Management Features
+# User Profile Management
 
 ## Overview
-User profile management is a crucial feature of the P2PDEVIDEO application, allowing users to create, update, and manage their profiles securely. This document outlines the functionalities, usage, and implementation details of user profile management within the application.
+User profile management is a crucial feature of the P2PDEVIDEO application. It allows users to create, update, and manage their personal profiles, ensuring a personalized experience within the platform. This documentation outlines the functionalities and endpoints associated with user profile management.
 
 ## Features
+- **Create User Profile**: Users can create a new profile when they register.
+- **Update User Profile**: Users can update their profile information, including name, email, and preferences.
+- **Retrieve User Profile**: Users can retrieve their profile information at any time.
+- **Delete User Profile**: Users have the option to delete their profiles from the system.
 
-### 1. Profile Creation
-- Users can create a new profile by providing necessary information such as username, email, and password.
-- Profile creation includes validation checks to ensure data integrity.
+## API Endpoints
 
-### 2. Profile Retrieval
-- Users can retrieve their profile information at any time.
-- Profile data includes user details such as username, email, roles, and profile picture.
+### 1. Create User Profile
+- **Endpoint**: `POST /api/user/profile`
+- **Request Body**:
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "preferences": {
+      "theme": "dark",
+      "notifications": true
+    }
+  }
+  ```
+- **Response**:
+  - 201 Created: Returns the created user profile.
+  - 400 Bad Request: Returns an error if required fields are missing.
 
-### 3. Profile Update
-- Users have the ability to update their profile information.
-- Changes to the profile require re-validation of the data to prevent malicious inputs.
+### 2. Update User Profile
+- **Endpoint**: `PUT /api/user/profile`
+- **Request Body**:
+  ```json
+  {
+    "name": "John Doe Updated",
+    "email": "john.doe.updated@example.com"
+  }
+  ```
+- **Response**:
+  - 200 OK: Returns the updated user profile.
+  - 404 Not Found: Returns an error if the profile does not exist.
 
-### 4. Profile Deletion
-- Users can delete their profiles permanently from the system. This action is irreversible and will remove all associated data.
+### 3. Retrieve User Profile
+- **Endpoint**: `GET /api/user/profile`
+- **Response**:
+  - 200 OK: Returns the user's profile information.
+  - 404 Not Found: Returns an error if the profile does not exist.
 
-### 5. Role Management
-- The system supports various user roles, allowing for differentiated access to features based on user type (e.g., admin, regular user).
+### 4. Delete User Profile
+- **Endpoint**: `DELETE /api/user/profile`
+- **Response**:
+  - 204 No Content: Indicates the profile was successfully deleted.
+  - 404 Not Found: Returns an error if the profile does not exist.
 
 ## Implementation Details
-
-### Endpoints
-- **POST /api/user/profile**: Create a new user profile.
-- **GET /api/user/profile**: Retrieve the user's profile information.
-- **PUT /api/user/profile**: Update the user's profile information.
-- **DELETE /api/user/profile**: Delete the user's profile.
-
-### Security
-- All profile operations are secured via OAuth 2.0 authentication.
-- Data is encrypted during transmission to protect user information.
-
-### Validation
-- Input validation is conducted through middleware to ensure all data adheres to specified formats.
+- The user profile management should ensure all operations are secured and only accessible to authenticated users.
+- Data validation should be performed on all input to maintain data integrity.
+- Consider implementing middleware for handling user authorization, ensuring users can only manage their own profiles.
 
 ## Conclusion
-User profile management is designed to be user-friendly while ensuring security and data integrity. This document serves as a guide for developers implementing these features and for users navigating their profile management within the application.
+Effective user profile management enhances user experience and engagement within the P2PDEVIDEO application. This documentation serves as a guide for developers to implement and maintain the user profile features efficiently.
 
 ## Next Steps
-- Continue developing and integrating user profile features as outlined in the implementation plan.
+- Review the implementation of the user profile management features.
+- Implement necessary tests and validation logic.
+- Document additional user management features as required.
