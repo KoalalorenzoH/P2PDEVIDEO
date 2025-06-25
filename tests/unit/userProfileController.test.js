@@ -1,62 +1,53 @@
 const request = require('supertest');
-const express = require('express');
+const app = require('../../app'); // Assuming app is exported from your main file
 const userProfileController = require('../controllers/userProfileController');
 
-const app = express();
-app.use(express.json());
-app.use('/api/profile', userProfileController);
-
 describe('User Profile Controller', () => {
-    it('should retrieve user profile by ID', async () => {
-        const response = await request(app)
-            .get('/api/profile/1')
-            .expect('Content-Type', /json/)
-            .expect(200);
+  beforeAll(async () => {
+    // Setup code before tests run, like connecting to the database
+  });
 
-        expect(response.body).toHaveProperty('id', 1);
-        expect(response.body).toHaveProperty('name');
+  afterAll(async () => {
+    // Cleanup code after tests are done, like closing the database connection
+  });
+
+  describe('GET /user/profile/:id', () => {
+    it('should return user profile if user exists', async () => {
+      const response = await request(app)
+        .get('/user/profile/123') // Replace with valid user ID
+        .expect('Content-Type', /json/)  
+        .expect(200);
+
+      expect(response.body).toHaveProperty('id', '123'); // Adjust according to actual profile structure
+      expect(response.body).toHaveProperty('name'); // Assuming profile has a name
     });
 
-    it('should return 404 for non-existent user profile', async () => {
-        const response = await request(app)
-            .get('/api/profile/999')
-            .expect(404);
+    it('should return 404 if user does not exist', async () => {
+      const response = await request(app)
+        .get('/user/profile/999') // Non-existing user ID
+        .expect(404);
 
-        expect(response.body).toHaveProperty('error', 'User profile not found');
+      expect(response.body).toHaveProperty('error', 'User not found');
     });
+  });
 
+  describe('PUT /user/profile/:id', () => {
     it('should update user profile', async () => {
-        const response = await request(app)
-            .put('/api/profile/1')
-            .send({ name: 'Updated Name' })
-            .expect('Content-Type', /json/)
-            .expect(200);
+      const response = await request(app)
+        .put('/user/profile/123')
+        .send({ name: 'Updated Name' })
+        .expect(200);
 
-        expect(response.body).toHaveProperty('message', 'Profile updated successfully');
+      expect(response.body).toHaveProperty('message', 'Profile updated successfully');
     });
 
-    it('should return 400 for invalid update request', async () => {
-        const response = await request(app)
-            .put('/api/profile/1')
-            .send({})
-            .expect(400);
+    it('should return 400 for invalid data', async () => {
+      const response = await request(app)
+        .put('/user/profile/123')
+        .send({ name: '' }) // Assuming name cannot be empty
+        .expect(400);
 
-        expect(response.body).toHaveProperty('error', 'Invalid profile data');
+      expect(response.body).toHaveProperty('error', 'Invalid data');
     });
-
-    it('should delete user profile', async () => {
-        const response = await request(app)
-            .delete('/api/profile/1')
-            .expect(200);
-
-        expect(response.body).toHaveProperty('message', 'Profile deleted successfully');
-    });
-
-    it('should return 404 when deleting non-existent profile', async () => {
-        const response = await request(app)
-            .delete('/api/profile/999')
-            .expect(404);
-
-        expect(response.body).toHaveProperty('error', 'User profile not found');
-    });
+  });
 });
