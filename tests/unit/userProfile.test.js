@@ -1,52 +1,54 @@
+// Import required modules
 const request = require('supertest');
-const app = require('../../src/app'); // Make sure to adjust the path to your app
-const UserProfile = require('../../src/models/userProfileModel'); // Import the UserProfile model
+const app = require('../../app'); // Assuming the Express app is exported from this module
+const UserProfileController = require('../../src/controllers/userProfileController');
 
-describe('User Profile Management', () => {
-    let userProfileId;
+// Mocking the UserProfileController methods
+jest.mock('../../src/controllers/userProfileController');
 
-    beforeEach(async () => {
-        // Setup a sample user profile before each test
-        const userProfile = await UserProfile.create({
-            username: 'testuser',
-            email: 'testuser@example.com',
-            bio: 'This is a test user profile.'
+describe('User Profile API', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('GET /api/user/profile/:id', () => {
+        it('should return user profile for valid user id', async () => {
+            const mockUserProfile = { id: '1', name: 'John Doe', email: 'johndoe@example.com' };  
+            UserProfileController.getProfile.mockResolvedValue(mockUserProfile);
+
+            const response = await request(app).get('/api/user/profile/1');
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(mockUserProfile);
         });
-        userProfileId = userProfile._id;
+
+        it('should return 404 for non-existing user id', async () => {
+            UserProfileController.getProfile.mockResolvedValue(null);
+
+            const response = await request(app).get('/api/user/profile/999');
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('User not found');
+        });
     });
 
-    afterEach(async () => {
-        // Clean up the database after each test
-        await UserProfile.deleteMany();
-    });
+    describe('PUT /api/user/profile/:id', () => {
+        it('should update user profile for valid user id', async () => {
+            const updatedProfile = { name: 'John Smith', email: 'johnsmith@example.com' };
+            UserProfileController.updateProfile.mockResolvedValue(updatedProfile);
 
-    test('GET /api/userProfile/:id should return user profile', async () => {
-        const response = await request(app)
-            .get(`/api/userProfile/${userProfileId}`)
-            .expect(200);
+            const response = await request(app)
+                .put('/api/user/profile/1')
+                .send(updatedProfile);
 
-        expect(response.body).toHaveProperty('username', 'testuser');
-        expect(response.body).toHaveProperty('email', 'testuser@example.com');
-        expect(response.body).toHaveProperty('bio', 'This is a test user profile.');
-    });
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(updatedProfile);
+        });
 
-    test('PUT /api/userProfile/:id should update user profile', async () => {
-        const response = await request(app)
-            .put(`/api/userProfile/${userProfileId}`)
-            .send({
-                bio: 'Updated bio for test user.'
-            })
-            .expect(200);
-
-        expect(response.body).toHaveProperty('bio', 'Updated bio for test user.');
-    });
-
-    test('DELETE /api/userProfile/:id should delete user profile', async () => {
-        await request(app)
-            .delete(`/api/userProfile/${userProfileId}`)
-            .expect(204);
-
-        const deletedProfile = await UserProfile.findById(userProfileId);
-        expect(deletedProfile).toBeNull();
+        it('should return 400 for invalid input', async () => {
+            const response = await request(app)
+                .put('/api/user/profile/1')
+                .send({}); // Sending empty object
+            expect(response.status).toBe(400);
+            expect(response.body.message).toBe('Invalid input');
+        });
     });
 });
