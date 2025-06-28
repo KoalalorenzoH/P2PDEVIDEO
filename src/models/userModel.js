@@ -1,12 +1,16 @@
+// userModel.js
+
 const mongoose = require('mongoose');
 
-// Define user schema for the MongoDB database
+// Define the user schema for MongoDB
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
         unique: true,
-        trim: true
+        trim: true,
+        minlength: 3,
+        maxlength: 30
     },
     password: {
         type: String,
@@ -18,10 +22,17 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
         trim: true,
-        lowercase: true
+        lowercase: true,
+        validate: {
+            validator: (v) => {
+                return /.+@.+\..+/.test(v);
+            },
+            message: props => `${props.value} is not a valid email!`
+        }
     },
     roles: {
         type: [String],
+        enum: ['user', 'admin', 'moderator'],
         default: ['user']
     },
     createdAt: {
@@ -30,15 +41,7 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// Define methods for user schema
-userSchema.methods = {
-    // Method to validate password
-    validatePassword: function(password) {
-        return this.password === password; // Replace with hashing comparison in production
-    },
-};
-
-// Create user model from the schema
+// Create a model based on the schema
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
