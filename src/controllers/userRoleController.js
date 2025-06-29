@@ -1,16 +1,15 @@
 // userRoleController.js
 
-const UserRole = require('../models/userRole'); // Assuming userRole model is defined
-const User = require('../models/user'); // Assuming user model is defined
+const UserRole = require('../models/userRole');  // Assuming userRole model exists
 
 /**
- * Controller for managing user roles
+ * Controller for managing user roles.
  */
 class UserRoleController {
     /**
-     * Create a new user role
-     * @param {Object} req - Request object
-     * @param {Object} res - Response object
+     * Create a new user role.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
      */
     static async createRole(req, res) {
         try {
@@ -24,29 +23,46 @@ class UserRoleController {
     }
 
     /**
-     * Get all user roles
-     * @param {Object} req - Request object
-     * @param {Object} res - Response object
+     * Get all user roles.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
      */
     static async getAllRoles(req, res) {
         try {
             const roles = await UserRole.find();
-            return res.status(200).json({ roles });
+            return res.status(200).json(roles);
         } catch (error) {
-            return res.status(500).json({ message: 'Error retrieving roles', error: error.message });
+            return res.status(500).json({ message: 'Error fetching roles', error: error.message });
         }
     }
 
     /**
-     * Update a user role
-     * @param {Object} req - Request object
-     * @param {Object} res - Response object
+     * Get a specific user role by ID.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
+     */
+    static async getRoleById(req, res) {
+        const { id } = req.params;
+        try {
+            const role = await UserRole.findById(id);
+            if (!role) {
+                return res.status(404).json({ message: 'Role not found' });
+            }
+            return res.status(200).json(role);
+        } catch (error) {
+            return res.status(500).json({ message: 'Error fetching role', error: error.message });
+        }
+    }
+
+    /**
+     * Update a user role.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
      */
     static async updateRole(req, res) {
         const { id } = req.params;
-        const { name, permissions } = req.body;
         try {
-            const updatedRole = await UserRole.findByIdAndUpdate(id, { name, permissions }, { new: true });
+            const updatedRole = await UserRole.findByIdAndUpdate(id, req.body, { new: true });
             if (!updatedRole) {
                 return res.status(404).json({ message: 'Role not found' });
             }
@@ -57,9 +73,9 @@ class UserRoleController {
     }
 
     /**
-     * Delete a user role
-     * @param {Object} req - Request object
-     * @param {Object} res - Response object
+     * Delete a user role.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
      */
     static async deleteRole(req, res) {
         const { id } = req.params;
