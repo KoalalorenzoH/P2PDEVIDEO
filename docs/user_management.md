@@ -1,77 +1,68 @@
 # User Management Documentation
 
 ## Overview
-
-The User Management feature is designed to handle all aspects of user interactions within the P2PDEVIDEO application. This documentation provides an overview of the features, functionalities, and workflows related to user management.
+The User Management feature is a crucial component of the P2PDEVIDEO application, providing functionalities for user registration, authentication, and profile management. This document outlines the various aspects of user management, including how to use the API endpoints and the expected behaviors.
 
 ## Features
+- **User Registration**: Allows new users to create an account with the application.
+- **User Authentication**: Supports login functionality using OAuth 2.0.
+- **User Profile Management**: Enables users to view and update their profiles.
+- **Role Management**: Implements role-based access control for different user roles.
 
-### User Registration
-- Users can register for a new account using their email and password.
-- Support for OAuth 2.0 authentication is implemented to allow users to register using third-party services (e.g., Google, Facebook).
+## API Endpoints
 
-### User Login
-- Users can log in to their accounts using their registered email and password.
-- Token-based authentication is employed to maintain secure sessions.
-
-### User Profile Management
-- Users can access and update their profile information, including username, password, and personal preferences.
-- Profile updates trigger validation checks to ensure data integrity.
-
-### Roles and Permissions
-- The system supports multiple user roles (e.g., admin, regular user) to manage permissions effectively.
-- Role-based access control is enforced to restrict actions based on user roles.
-
-### User Authentication
-- An authentication middleware is implemented to protect sensitive routes.
-- Sessions are managed securely, with token expiration and renewal processes in place.
-
-## APIs
-
-### Registration API
-- **Endpoint:** `POST /api/auth/register`
-- **Request Body:**
+### 1. User Registration
+- **Endpoint**: `POST /api/users/register`
+- **Request Body**:
   ```json
   {
-      "email": "user@example.com",
-      "password": "securepassword"
+      "username": "string",
+      "email": "string",
+      "password": "string"
   }
   ```
-- **Response:**
-  - `201 Created` on successful registration.
-  - `400 Bad Request` on validation errors.
+- **Response**:
+  - **201 Created**: User successfully registered.
+  - **400 Bad Request**: Validation errors or user already exists.
 
-### Login API
-- **Endpoint:** `POST /api/auth/login`
-- **Request Body:**
+### 2. User Authentication
+- **Endpoint**: `POST /api/users/login`
+- **Request Body**:
   ```json
   {
-      "email": "user@example.com",
-      "password": "securepassword"
+      "email": "string",
+      "password": "string"
   }
   ```
-- **Response:**
-  - `200 OK` with authentication token on successful login.
-  - `401 Unauthorized` on failed login attempts.
+- **Response**:
+  - **200 OK**: Returns a JWT token for authenticated sessions.
+  - **401 Unauthorized**: Invalid credentials.
 
-### Profile API
-- **Endpoint:** `GET /api/user/profile`
-- **Response:**
-  - `200 OK` with user profile data.
+### 3. User Profile Management
+- **Endpoint**: `GET /api/users/profile`
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - **200 OK**: Returns user profile details.
 
-### Update Profile API
-- **Endpoint:** `PUT /api/user/profile`
-- **Request Body:**
+### 4. Update User Profile
+- **Endpoint**: `PUT /api/users/profile`
+- **Request Body**:
   ```json
   {
-      "username": "newusername",
-      "preferences": { ... }
+      "username": "string",
+      "email": "string"
   }
   ```
-- **Response:**
-  - `200 OK` on successful profile update.
-  - `400 Bad Request` on validation errors.
+- **Response**:
+  - **200 OK**: Successfully updated user profile.
+  - **400 Bad Request**: Validation errors.
+
+## Error Handling
+The API follows standard HTTP status codes to indicate the success or failure of requests. Common error responses include:
+- **400 Bad Request**: Input validation errors.
+- **401 Unauthorized**: Access token is missing or invalid.
+- **404 Not Found**: Resource not found.
 
 ## Conclusion
-
-The User Management feature is critical for ensuring secure and efficient user interactions within the P2PDEVIDEO application. This documentation serves as a guide for developers and maintainers to understand the system's functionality and API endpoints.
+This documentation serves as a guide for developers and users to understand the user management features of the P2PDEVIDEO application. For further assistance, refer to the source code in `src/controllers/userController.js` for implementation details.
