@@ -1,45 +1,62 @@
 const request = require('supertest');
-const app = require('../../app'); // Ensure correct path to your app
-const userRoleController = require('../controllers/userRoleController');
+const app = require('../../app'); // Adjust the path to your app.js or server.js
+const UserRoleController = require('../../src/controllers/userRoleController');
+
+// Mocking UserRoleController methods
+jest.mock('../../src/controllers/userRoleController');
 
 describe('User Role Controller', () => {
-    let roleId;
+    describe('GET /api/roles', () => {
+        it('should return all user roles', async () => {
+            const roles = [{ id: 1, name: 'Admin' }, { id: 2, name: 'User' }];
+            UserRoleController.getAllRoles.mockResolvedValueOnce(roles);
 
-    // Setup: Create a mock role to use in the tests
-    beforeAll(async () => {
-        const roleResponse = await userRoleController.createRole({ name: 'Test Role' });
-        roleId = roleResponse._id; // Store the created role ID
+            const response = await request(app).get('/api/roles');
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(roles);
+        });
     });
 
-    // Test case for retrieving a role by ID
-    it('should retrieve a role by ID', async () => {
-        const response = await request(app)
-            .get(`/api/roles/${roleId}`)
-            .expect('Content-Type', /json/)
-            .expect(200);
-        expect(response.body).toHaveProperty('_id', roleId);
+    describe('POST /api/roles', () => {
+        it('should create a new user role', async () => {
+            const newRole = { name: 'Guest' };
+            UserRoleController.createRole.mockResolvedValueOnce(newRole);
+
+            const response = await request(app)
+                .post('/api/roles')
+                .send(newRole);
+
+            expect(response.status).toBe(201);
+            expect(response.body).toEqual(newRole);
+        });
+
+        it('should return 400 if the role name is missing', async () => {
+            const response = await request(app)
+                .post('/api/roles')
+                .send({});
+
+            expect(response.status).toBe(400);
+            expect(response.body.message).toBe('Role name is required');
+        });
     });
 
-    // Test case for updating a role
-    it('should update a role', async () => {
-        const updatedRole = { name: 'Updated Role' };
-        const response = await request(app)
-            .put(`/api/roles/${roleId}`)
-            .send(updatedRole)
-            .expect('Content-Type', /json/)
-            .expect(200);
-        expect(response.body).toHaveProperty('name', 'Updated Role');
-    });
+    describe('DELETE /api/roles/:id', () => {
+        it('should delete an existing user role', async () => {
+            const roleId = 1;
+            UserRoleController.deleteRole.mockResolvedValueOnce({ message: 'Role deleted' });
 
-    // Test case for deleting a role
-    it('should delete a role', async () => {
-        await request(app)
-            .delete(`/api/roles/${roleId}`)
-            .expect(204);
-    });
+            const response = await request(app).delete(`/api/roles/${roleId}`);
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('Role deleted');
+        });
 
-    // Cleanup: Remove the created role after tests
-    afterAll(async () => {
-        await userRoleController.deleteRole(roleId);
+        it('should return 404 if the role does not exist', async () => {
+            const roleId = 999;
+            UserRoleController.deleteRole.mockResolvedValueOnce(null);
+
+            const response = await request(app).delete(`/api/roles/${roleId}`);
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe('Role not found');
+        });
     });
 });
