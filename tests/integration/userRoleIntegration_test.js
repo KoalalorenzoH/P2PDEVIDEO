@@ -1,64 +1,69 @@
 const request = require('supertest');
-const app = require('../../src/app'); // Adjust the path as necessary
+const app = require('../../src/app');
 const mongoose = require('mongoose');
 const UserRole = require('../../src/models/userRole');
 
-/**
- * Integration tests for user role management.
- */
-describe('User Role Management Integration Tests', () => {
-    // Connect to the database before running the tests
+// Sample user role data for testing
+const roleData = {
+    name: 'Admin',
+    permissions: [
+        'CREATE_USER',
+        'DELETE_USER',
+        'VIEW_USER'
+    ]
+};
+
+describe('User Role Integration Tests', () => {
+    // Connect to the database before running tests
     beforeAll(async () => {
-        await mongoose.connect(process.env.MONGODB_URI, {
+        await mongoose.connect(process.env.MONGO_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
     });
 
-    // Cleanup after tests
+    // Clean up after tests
     afterAll(async () => {
+        await UserRole.deleteMany(); // Clear the roles collection
         await mongoose.connection.close();
     });
 
-    it('should create a new user role', async () => {
-        const newRole = { name: 'Admin', permissions: ['read', 'write', 'delete'] };
+    test('POST /api/roles - Create a new user role', async () => {
         const response = await request(app)
-            .post('/api/userRoles') // Adjust endpoint as necessary
-            .send(newRole)
+            .post('/api/roles')
+            .send(roleData)
             .set('Accept', 'application/json');
 
         expect(response.status).toBe(201);
-        expect(response.body).toHaveProperty('role');
-        expect(response.body.role.name).toBe(newRole.name);
+        expect(response.body).toHaveProperty('name', roleData.name);
+        expect(response.body).toHaveProperty('permissions', roleData.permissions);
     });
 
-    it('should fetch all user roles', async () => {
+    test('GET /api/roles - Retrieve all user roles', async () => {
         const response = await request(app)
-            .get('/api/userRoles') // Adjust endpoint as necessary
+            .get('/api/roles')
             .set('Accept', 'application/json');
 
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(Array.isArray(response.body)).toBeTruthy();
     });
 
-    it('should update a user role', async () => {
-        const roleToUpdate = await UserRole.findOne({ name: 'Admin' });
-        const updatedRole = { name: 'Super Admin', permissions: ['read', 'write'] };
+    test('GET /api/roles/:id - Retrieve a specific user role', async () => {
+        const createdRole = await UserRole.create(roleData);
         const response = await request(app)
-            .put(`/api/userRoles/${roleToUpdate._id}`) // Adjust endpoint as necessary
-            .send(updatedRole)
+            .get(`/api/roles/${createdRole._id}`)
             .set('Accept', 'application/json');
 
         expect(response.status).toBe(200);
-        expect(response.body.role.name).toBe(updatedRole.name);
+        expect(response.body).toHaveProperty('name', createdRole.name);
     });
 
-    it('should delete a user role', async () => {
-        const roleToDelete = await UserRole.findOne({ name: 'Super Admin' });
+    test('DELETE /api/roles/:id - Delete a user role', async () => {
+        const createdRole = await UserRole.create(roleData);
         const response = await request(app)
-            .delete(`/api/userRoles/${roleToDelete._id}`) // Adjust endpoint as necessary
+            .delete(`/api/roles/${createdRole._id}`)
             .set('Accept', 'application/json');
 
-        expect(response.status).toBe(204); // No content
+        expect(response.status).toBe(204);
     });
 });
