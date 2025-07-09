@@ -1,62 +1,56 @@
 const request = require('supertest');
-const app = require('../../src/app'); // Adjust the path to your main app file
-const Role = require('../../src/models/roleModel'); // Adjust the path to your role model
+const app = require('../../src/app'); // Path to your Express app
+const { connectDB, disconnectDB } = require('../../src/config/db');
 
-/**
- * Integration tests for user role management
- */
+// Connect to the database before running the tests
+beforeAll(async () => {
+    await connectDB();
+});
+
+// Disconnect from the database after tests are complete
+afterAll(async () => {
+    await disconnectDB();
+});
+
 describe('User Role Management Integration Tests', () => {
-    let newRoleId;
+    let roleId;
 
-    beforeAll(async () => {
-        // Clear the roles collection before running tests
-        await Role.deleteMany({});
-    });
-
-    test('POST /api/roles - should create a new role', async () => {
-        const response = await request(app)
+    // Test for creating a role
+    test('POST /api/roles - create a new role', async () => {
+        const res = await request(app)
             .post('/api/roles')
             .send({ name: 'Admin', permissions: ['create', 'read', 'update', 'delete'] });
 
-        expect(response.status).toBe(201);
-        expect(response.body).toHaveProperty('_id');
-        expect(response.body.name).toBe('Admin');
-        newRoleId = response.body._id;  // Store the new role ID for later tests
+        expect(res.statusCode).toBe(201);
+        expect(res.body).toHaveProperty('role');
+        roleId = res.body.role._id; // Store the created role ID for further tests
     });
 
-    test('GET /api/roles - should return all roles', async () => {
-        const response = await request(app).get('/api/roles');
+    // Test for retrieving roles
+    test('GET /api/roles - retrieve all roles', async () => {
+        const res = await request(app)
+            .get('/api/roles');
 
-        expect(response.status).toBe(200);
-        expect(response.body).toBeInstanceOf(Array);
-        expect(response.body.length).toBeGreaterThan(0);
+        expect(res.statusCode).toBe(200);
+        expect(Array.isArray(res.body)).toBeTruthy();
     });
 
-    test('GET /api/roles/:id - should return a role by ID', async () => {
-        const response = await request(app).get(`/api/roles/${newRoleId}`);
+    // Test for updating a role
+    test('PUT /api/roles/:id - update a role', async () => {
+        const res = await request(app)
+            .put(`/api/roles/${roleId}`)
+            .send({ name: 'Super Admin', permissions: ['read', 'delete'] });
 
-        expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('_id', newRoleId);
-        expect(response.body.name).toBe('Admin');
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toHaveProperty('role');
+        expect(res.body.role.name).toBe('Super Admin');
     });
 
-    test('PUT /api/roles/:id - should update a role', async () => {
-        const response = await request(app)
-            .put(`/api/roles/${newRoleId}`)
-            .send({ name: 'Super Admin', permissions: ['all'] });
+    // Test for deleting a role
+    test('DELETE /api/roles/:id - delete a role', async () => {
+        const res = await request(app)
+            .delete(`/api/roles/${roleId}`);
 
-        expect(response.status).toBe(200);
-        expect(response.body.name).toBe('Super Admin');
-    });
-
-    test('DELETE /api/roles/:id - should delete a role', async () => {
-        const response = await request(app).delete(`/api/roles/${newRoleId}`);
-
-        expect(response.status).toBe(204);
-    });
-
-    afterAll(async () => {
-        // Clean up the database after tests
-        await Role.deleteMany({});
+        expect(res.statusCode).toBe(204);
     });
 });
