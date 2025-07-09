@@ -4,28 +4,35 @@ const userRoleController = require('../controllers/userRoleController');
 
 /**
  * @route GET /api/roles
- * @desc Get all user roles
+ * @description Retrieve all user roles
  * @access Public
  */
 router.get('/', userRoleController.getAllRoles);
 
 /**
+ * @route GET /api/roles/:id
+ * @description Retrieve a specific user role by ID
+ * @access Public
+ */
+router.get('/:id', userRoleController.getRoleById);
+
+/**
  * @route POST /api/roles
- * @desc Create a new user role
+ * @description Create a new user role
  * @access Admin
  */
 router.post('/', userRoleController.createRole);
 
 /**
  * @route PUT /api/roles/:id
- * @desc Update an existing user role
+ * @description Update an existing user role by ID
  * @access Admin
  */
 router.put('/:id', userRoleController.updateRole);
 
 /**
  * @route DELETE /api/roles/:id
- * @desc Delete a user role
+ * @description Delete a user role by ID
  * @access Admin
  */
 router.delete('/:id', userRoleController.deleteRole);
