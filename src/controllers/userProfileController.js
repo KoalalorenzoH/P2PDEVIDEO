@@ -1,70 +1,59 @@
 // userProfileController.js
 
-const UserProfile = require('../models/user'); // Import user model
+const UserProfile = require('../models/user'); // Import the user model
 
 /**
- * UserProfileController handles requests related to user profiles.
+ * @description Controller for managing user profiles
  */
-class UserProfileController {
-    /**
-     * Get user profile by ID
-     * @param {Object} req - The request object
-     * @param {Object} res - The response object
-     */
-    static async getUserProfile(req, res) {
-        try {
-            const userId = req.params.id; // Extract user ID from request parameters
-            const userProfile = await UserProfile.findById(userId); // Fetch user profile from the database
 
-            if (!userProfile) {
-                return res.status(404).json({ message: 'User not found' }); // Handle case where user is not found
-            }
+/**
+ * @function getUserProfile
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @returns {Object} User profile data
+ */
+const getUserProfile = async (req, res) => {
+    try {
+        const userId = req.params.id; // Extract user ID from request parameters
+        const userProfile = await UserProfile.findById(userId); // Fetch user profile from database
 
-            return res.status(200).json(userProfile); // Respond with user profile data
-        } catch (error) {
-            return res.status(500).json({ message: 'Server error', error: error.message }); // Handle server errors
+        if (!userProfile) {
+            return res.status(404).json({ message: 'User profile not found' }); // Handle user not found
         }
+
+        return res.status(200).json(userProfile); // Return user profile data
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return res.status(500).json({ message: 'Server error' }); // Handle server error
     }
+};
 
-    /**
-     * Update user profile by ID
-     * @param {Object} req - The request object
-     * @param {Object} res - The response object
-     */
-    static async updateUserProfile(req, res) {
-        try {
-            const userId = req.params.id; // Extract user ID from request parameters
-            const updatedProfile = await UserProfile.findByIdAndUpdate(userId, req.body, { new: true }); // Update user profile in the database
+/**
+ * @function updateUserProfile
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @returns {Object} Updated user profile data
+ */
+const updateUserProfile = async (req, res) => {
+    try {
+        const userId = req.params.id; // Extract user ID from request parameters
+        const updates = req.body; // Get updates from request body
 
-            if (!updatedProfile) {
-                return res.status(404).json({ message: 'User not found' }); // Handle case where user is not found
-            }
+        const updatedProfile = await UserProfile.findByIdAndUpdate(userId, updates, { new: true, runValidators: true }); // Update user profile in database
 
-            return res.status(200).json(updatedProfile); // Respond with updated profile data
-        } catch (error) {
-            return res.status(500).json({ message: 'Server error', error: error.message }); // Handle server errors
+        if (!updatedProfile) {
+            return res.status(404).json({ message: 'User profile not found' }); // Handle user not found
         }
+
+        return res.status(200).json(updatedProfile); // Return updated profile data
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        return res.status(500).json({ message: 'Server error' }); // Handle server error
     }
+};
 
-    /**
-     * Delete user profile by ID
-     * @param {Object} req - The request object
-     * @param {Object} res - The response object
-     */
-    static async deleteUserProfile(req, res) {
-        try {
-            const userId = req.params.id; // Extract user ID from request parameters
-            const deletedProfile = await UserProfile.findByIdAndDelete(userId); // Delete user profile from the database
-
-            if (!deletedProfile) {
-                return res.status(404).json({ message: 'User not found' }); // Handle case where user is not found
-            }
-
-            return res.status(200).json({ message: 'User profile deleted successfully' }); // Respond with success message
-        } catch (error) {
-            return res.status(500).json({ message: 'Server error', error: error.message }); // Handle server errors
-        }
-    }
-}
-
-module.exports = UserProfileController; // Export the controller
+// Export the controller functions
+module.exports = {
+    getUserProfile,
+    updateUserProfile
+};
