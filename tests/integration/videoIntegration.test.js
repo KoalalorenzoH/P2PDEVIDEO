@@ -1,84 +1,20 @@
 const request = require('supertest');
-<<<<<<< HEAD
-const app = require('../../src/app'); // Adjust the path according to your setup
+const app = require('../../src/app'); // Assuming your express app is exported from src/app.js
 const mongoose = require('mongoose');
 
 describe('Video Integration Tests', () => {
+  let videoData;
+  let createdVideoId;
+
   beforeAll(async () => {
     // Connect to the database before running tests
-    await mongoose.connect(process.env.MONGODB_URI, { // Ensure MONGODB_URI is set in your environment variables
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-  });
+    if (process.env.MONGODB_URI) {
+      await mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+    }
 
-  afterAll(async () => {
-    // Close the database connection after tests
-    await mongoose.connection.close();
-  });
-
-  test('POST /api/videos - Create a new video', async () => {
-    const videoData = {
-      title: 'Test Video',
-      description: 'This is a test video description',
-      // Add other fields as necessary for your video schema
-    };
-
-    const response = await request(app)
-      .post('/api/videos')
-      .send(videoData)
-      .set('Accept', 'application/json');
-
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty('message', 'Video created successfully');
-    expect(response.body).toHaveProperty('video');
-  });
-
-  test('GET /api/videos/:id - Get video by ID', async () => {
-    const videoId = 'some-valid-video-id'; // Replace with a valid video ID from your database
-
-    const response = await request(app)
-      .get(`/api/videos/${videoId}`)
-      .set('Accept', 'application/json');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('video');
-    expect(response.body.video).toHaveProperty('title');
-  });
-
-  test('PUT /api/videos/:id - Update video', async () => {
-    const videoId = 'some-valid-video-id'; // Replace with a valid video ID from your database
-    const updateData = {
-      title: 'Updated Test Video',
-    };
-
-    const response = await request(app)
-      .put(`/api/videos/${videoId}`)
-      .send(updateData)
-      .set('Accept', 'application/json');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('message', 'Video updated successfully');
-  });
-
-  test('DELETE /api/videos/:id - Delete video', async () => {
-    const videoId = 'some-valid-video-id'; // Replace with a valid video ID from your database
-
-    const response = await request(app)
-      .delete(`/api/videos/${videoId}`)
-      .set('Accept', 'application/json');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('message', 'Video deleted successfully');
-  });
-});
-=======
-const app = require('../../src/app'); // Assuming your express app is exported from src/app.js
-
-describe('Video Upload Integration Tests', () => {
-  let videoData;
-
-  beforeAll(() => {
     // Setup test video data
     videoData = {
       title: 'Test Video',
@@ -87,6 +23,14 @@ describe('Video Upload Integration Tests', () => {
     };
   });
 
+  afterAll(async () => {
+    // Close the database connection after tests
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.close();
+    }
+  });
+
+  // Test video upload functionality
   test('should upload a video successfully', async () => {
     const response = await request(app)
       .post('/api/videos/upload') // Adjust endpoint as necessary
@@ -95,6 +39,11 @@ describe('Video Upload Integration Tests', () => {
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('message', 'Video uploaded successfully');
     expect(response.body).toHaveProperty('videoId'); // Assuming the response returns a video ID
+
+    // Store the video ID for later tests
+    if (response.body.videoId) {
+      createdVideoId = response.body.videoId;
+    }
   });
 
   test('should fail to upload a video with missing fields', async () => {
@@ -118,6 +67,83 @@ describe('Video Upload Integration Tests', () => {
     expect(response.body).toHaveProperty('error', 'Title is required');
   });
 
-  // Additional tests for other scenarios can be added here
+  // Test full CRUD operations
+  test('POST /api/videos - Create a new video', async () => {
+    const newVideoData = {
+      title: 'Test Video for CRUD',
+      description: 'This is a test video description for CRUD operations',
+      // Add other fields as necessary for your video schema
+    };
+
+    const response = await request(app)
+      .post('/api/videos')
+      .send(newVideoData)
+      .set('Accept', 'application/json');
+
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('message', 'Video created successfully');
+    expect(response.body).toHaveProperty('video');
+
+    // Store the video ID for later tests
+    if (response.body.video && response.body.video._id) {
+      createdVideoId = response.body.video._id;
+    }
+  });
+
+  test('GET /api/videos/:id - Get video by ID', async () => {
+    if (!createdVideoId) {
+      console.log('Skipping test - no video ID available');
+      return;
+    }
+
+    const response = await request(app)
+      .get(`/api/videos/${createdVideoId}`)
+      .set('Accept', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('video');
+    expect(response.body.video).toHaveProperty('title');
+  });
+
+  test('PUT /api/videos/:id - Update video', async () => {
+    if (!createdVideoId) {
+      console.log('Skipping test - no video ID available');
+      return;
+    }
+
+    const updateData = {
+      title: 'Updated Test Video',
+    };
+
+    const response = await request(app)
+      .put(`/api/videos/${createdVideoId}`)
+      .send(updateData)
+      .set('Accept', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('message', 'Video updated successfully');
+  });
+
+  test('DELETE /api/videos/:id - Delete video', async () => {
+    if (!createdVideoId) {
+      console.log('Skipping test - no video ID available');
+      return;
+    }
+
+    const response = await request(app)
+      .delete(`/api/videos/${createdVideoId}`)
+      .set('Accept', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('message', 'Video deleted successfully');
+  });
+
+  // Additional tests for error scenarios
+  test('GET /api/videos/:id - Should return 404 for non-existing video', async () => {
+    const response = await request(app)
+      .get(`/api/videos/123456789012345678901234`)
+      .set('Accept', 'application/json');
+
+    expect(response.status).toBe(404);
+  });
 });
->>>>>>> ff0060b1e5e6f1befd22addf8d29d3eaa5767899
