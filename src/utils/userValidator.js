@@ -1,25 +1,20 @@
-<<<<<<< HEAD
-// userValidator.js
-
-/**
- * Validation utilities for user model.
- * This file contains functions that validate user input data,
- * ensuring that it meets specified criteria before being processed.
-=======
 /**
  * userValidator.js
  *
  * Validation utilities for user data, providing functions to check
  * the validity of user input during registration and profile updates.
+ * This file contains functions that validate user input data,
+ * ensuring that it meets specified criteria before being processed.
  *
  * @module utils/userValidator
->>>>>>> ff0060b1e5e6f1befd22addf8d29d3eaa5767899
  */
 
 /**
  * Validates user registration data.
-<<<<<<< HEAD
  * @param {Object} userData - The user data to validate.
+ * @param {string} userData.username - The username of the user.
+ * @param {string} userData.email - The email of the user.
+ * @param {string} userData.password - The password of the user.
  * @returns {Object} - An object containing validation results.
  */
 function validateRegistrationData(userData) {
@@ -28,11 +23,13 @@ function validateRegistrationData(userData) {
     // Check if username is provided
     if (!userData.username || userData.username.trim() === '') {
         errors.username = 'Username is required.';
+    } else if (userData.username.length < 3) {
+        errors.username = 'Username must be at least 3 characters long.';
     }
 
     // Check if email is provided and valid
-    if (!userData.email || !/
-    ^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(userData.email)) {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!userData.email || !emailRegex.test(userData.email)) {
         errors.email = 'A valid email is required.';
     }
 
@@ -45,8 +42,10 @@ function validateRegistrationData(userData) {
         isValid: Object.keys(errors).length === 0,
         errors
     };
-=======
- *
+}
+
+/**
+ * Validates user registration data (alternative implementation).
  * @param {Object} userData - The user data to validate.
  * @param {string} userData.username - The username of the user.
  * @param {string} userData.email - The email of the user.
@@ -73,13 +72,13 @@ function validateUserRegistration(userData) {
     }
 
     return errors;
->>>>>>> ff0060b1e5e6f1befd22addf8d29d3eaa5767899
 }
 
 /**
  * Validates user profile update data.
-<<<<<<< HEAD
  * @param {Object} profileData - The profile data to validate.
+ * @param {string} profileData.username - The username of the user.
+ * @param {string} profileData.email - The email of the user.
  * @returns {Object} - An object containing validation results.
  */
 function validateProfileUpdateData(profileData) {
@@ -91,7 +90,8 @@ function validateProfileUpdateData(profileData) {
     }
 
     // Check if email is valid
-    if (profileData.email && !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(profileData.email)) {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (profileData.email && !emailRegex.test(profileData.email)) {
         errors.email = 'A valid email is required.';
     }
 
@@ -101,11 +101,8 @@ function validateProfileUpdateData(profileData) {
     };
 }
 
-module.exports = {
-    validateRegistrationData,
-    validateProfileUpdateData
-=======
- *
+/**
+ * Validates user profile update data (alternative implementation).
  * @param {Object} profileData - The profile data to validate.
  * @param {string} profileData.username - The username of the user.
  * @param {string} profileData.email - The email of the user.
@@ -124,7 +121,8 @@ function validateUserProfileUpdate(profileData) {
 }
 
 module.exports = {
+    validateRegistrationData,
     validateUserRegistration,
+    validateProfileUpdateData,
     validateUserProfileUpdate
->>>>>>> ff0060b1e5e6f1befd22addf8d29d3eaa5767899
 };
