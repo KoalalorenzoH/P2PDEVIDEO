@@ -1,61 +1,77 @@
 const request = require('supertest');
-const app = require('../../src/api/user');
-const User = require('../../src/models/user');
+const app = require('../../src/app'); // Assuming your Express app is exported here
+const User = require('../../src/models/user'); // User model
 
-// Mocking the User model for testing purposes
-jest.mock('../../src/models/user');
+/**
+ * Unit tests for user management functionalities
+ */
+describe('User Management', () => {
 
-describe('User API Endpoints', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+    beforeAll(async () => {
+        await User.deleteMany({}); // Clean the database before tests
     });
 
-    describe('POST /api/users/register', () => {
-        it('should create a new user', async () => {
-            const newUser = { username: 'testuser', password: 'password123' };
-            User.create.mockResolvedValue(newUser);
-
-            const response = await request(app)
-                .post('/api/users/register')
-                .send(newUser);
-
-            expect(response.status).toBe(201);
-            expect(response.body).toEqual(newUser);
-            expect(User.create).toHaveBeenCalledWith(newUser);
-        });
-
-        it('should return 400 for missing username', async () => {
-            const response = await request(app)
-                .post('/api/users/register')
-                .send({ password: 'password123' });
-
-            expect(response.status).toBe(400);
-            expect(response.body.message).toBe('Username is required');
-        });
+    afterAll(async () => {
+        await User.deleteMany({}); // Clean up after tests
     });
 
-    describe('POST /api/users/login', () => {
-        it('should log in a user', async () => {
-            const mockUser = { username: 'testuser', password: 'password123' };
-            User.findOne.mockResolvedValue(mockUser);
+    it('should create a new user successfully', async () => {
+        const response = await request(app)
+            .post('/api/users/register') // Adjust path as necessary
+            .send({
+                username: 'testuser',
+                password: 'password123',
+                email: 'test@example.com'
+            });
 
-            const response = await request(app)
-                .post('/api/users/login')
-                .send(mockUser);
-
-            expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty('token');
-        });
-
-        it('should return 401 for incorrect password', async () => {
-            User.findOne.mockResolvedValue({ username: 'testuser', password: 'wrongpassword' });
-
-            const response = await request(app)
-                .post('/api/users/login')
-                .send({ username: 'testuser', password: 'password123' });
-
-            expect(response.status).toBe(401);
-            expect(response.body.message).toBe('Invalid credentials');
-        });
+        expect(response.status).toBe(201);
+        expect(response.body).toHaveProperty('user');
+        expect(response.body.user.username).toBe('testuser');
     });
+
+    it('should not create user with duplicate email', async () => {
+        await request(app)
+            .post('/api/users/register')
+            .send({
+                username: 'duplicateuser',
+                password: 'password123',
+                email: 'test@example.com'
+            });
+
+        const response = await request(app)
+            .post('/api/users/register')
+            .send({
+                username: 'anotheruser',
+                password: 'password123',
+                email: 'test@example.com'
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe('Email already in use');
+    });
+
+    it('should login an existing user', async () => {
+        const response = await request(app)
+            .post('/api/users/login') // Adjust path as necessary
+            .send({
+                email: 'test@example.com',
+                password: 'password123'
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('token');
+    });
+
+    it('should fail to login with incorrect password', async () => {
+        const response = await request(app)
+            .post('/api/users/login')
+            .send({
+                email: 'test@example.com',
+                password: 'wrongpassword'
+            });
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe('Invalid credentials');
+    });
+
 });
