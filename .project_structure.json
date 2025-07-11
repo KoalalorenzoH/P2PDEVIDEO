@@ -70,7 +70,8 @@
           "Create user profile update functionality",
           "Create role-based access control"
         ],
-        "estimated_files": 5
+        "estimated_files": 5,
+        "completed_files": 1
       },
       {
         "phase": "Phase 4",
@@ -109,7 +110,7 @@
           "Set up user-related API routes"
         ],
         "estimated_files": 3,
-        "completed_files": 1
+        "completed_files": 2
       },
       {
         "phase": "Phase 6",
@@ -219,6 +220,23 @@
           "Write tests for user role management features"
         ],
         "estimated_files": 3
+      },
+      {
+        "phase": "Phase 1.6",
+        "description": "Implement tests for user validation middleware.",
+        "tasks": [
+          "Create unit tests for user validation middleware"
+        ],
+        "estimated_files": 2
+      },
+      {
+        "phase": "Phase 1.1.1",
+        "description": "Develop user profile validation logic and routes.",
+        "tasks": [
+          "Implement user profile validation logic",
+          "Set up routes for user profile management"
+        ],
+        "estimated_files": 4
       }
     ],
     "next_priorities": [
@@ -273,110 +291,5 @@
     "commit_message_format": "Conventional Commits",
     "testing_requirements": "All new features must include unit tests and integration tests"
   },
-  "suggested_next_files": [
-    {
-      "file_path": "src/controllers/userProfileController.js",
-      "purpose": "Controller for managing user profiles",
-      "priority": "high",
-      "dependencies": []
-    },
-    {
-      "file_path": "tests/unit/userModel.test.js",
-      "purpose": "Unit tests for user model schema",
-      "priority": "high",
-      "dependencies": [
-        "src/models/userModel.js"
-      ]
-    },
-    {
-      "file_path": "src/utils/userValidator.js",
-      "purpose": "Validation utilities for user data",
-      "priority": "medium",
-      "dependencies": []
-    },
-    {
-      "file_path": "src/middleware/userValidation.js",
-      "purpose": "Middleware for validating user data",
-      "priority": "high",
-      "dependencies": []
-    },
-    {
-      "file_path": "tests/integration/userProfileIntegration_test.js",
-      "purpose": "Integration tests for user profile management",
-      "priority": "high",
-      "dependencies": [
-        "src/controllers/userProfileController.js"
-      ]
-    },
-    {
-      "file_path": "src/utils/userUtils.js",
-      "purpose": "Utility functions for user operations",
-      "priority": "low",
-      "dependencies": []
-    },
-    {
-      "file_path": "tests/unit/videoUtils.test.js",
-      "purpose": "Unit tests for video utility functions",
-      "priority": "medium"
-    },
-    {
-      "file_path": "src/utils/videoEncoder.js",
-      "purpose": "Functions for encoding videos",
-      "priority": "low"
-    },
-    {
-      "file_path": "tests/integration/video.test.js",
-      "purpose": "Integration tests for video features",
-      "priority": "medium"
-    },
-    {
-      "file_path": "docs/user_role_management.md",
-      "purpose": "Documentation for user role management features",
-      "priority": "medium",
-      "dependencies": []
-    },
-    {
-      "file_path": "tests/integration/user_management_integration_test.js",
-      "purpose": "Integration tests for user management features",
-      "priority": "high",
-      "dependencies": []
-    },
-    {
-      "file_path": "src/api/userRoleRoutes.js",
-      "purpose": "API routes for managing user roles",
-      "priority": "medium",
-      "dependencies": []
-    },
-    {
-      "file_path": "src/utils/userValidation.js",
-      "purpose": "Validation utilities for user-related operations",
-      "priority": "medium",
-      "dependencies": []
-    },
-    {
-      "file_path": "tests/unit/userRole.test.js",
-      "purpose": "Unit tests for user role management functionality",
-      "priority": "high"
-    },
-    {
-      "file_path": "src/models/videoModel.js",
-      "purpose": "Video model schema for MongoDB",
-      "priority": "high"
-    },
-    {
-      "file_path": "tests/integration/videoIntegration.test.js",
-      "purpose": "Integration tests for video upload functionality",
-      "priority": "medium"
-    },
-    {
-      "file_path": "docs/video_management_guide.md",
-      "purpose": "Documentation on video management features",
-      "priority": "medium"
-    },
-    {
-      "file_path": "tests/unit/user.test.js",
-      "purpose": "Unit tests for user management functionalities",
-      "priority": "medium"
-    }
-  ]
+  "suggested_next_files": []
 }
