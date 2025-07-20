@@ -1,22 +1,23 @@
 /**
  * Controller for managing user roles.
- * Provides CRUD operations for user roles.
+ * Handles CRUD operations and role assignments.
  */
 
-const RoleModel = require('../models/roleModel');
+const UserRole = require('../models/userRole');
+const Role = require('../models/roleModel');
 
 /**
  * Get all user roles.
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-async function getAllRoles(req, res) {
+async function getAllUserRoles(req, res) {
   try {
-    const roles = await RoleModel.find({});
-    res.status(200).json({ success: true, data: roles });
+    const userRoles = await UserRole.find().populate('role user');
+    res.status(200).json(userRoles);
   } catch (error) {
-    console.error('Error fetching roles:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch roles' });
+    console.error('Error fetching user roles:', error);
+    res.status(500).json({ message: 'Failed to fetch user roles' });
   }
 }
 
@@ -25,93 +26,114 @@ async function getAllRoles(req, res) {
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-async function getRoleById(req, res) {
+async function getUserRoleById(req, res) {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-    const role = await RoleModel.findById(id);
+    const userRole = await UserRole.findById(id).populate('role user');
+    if (!userRole) {
+      return res.status(404).json({ message: 'User role not found' });
+    }
+    res.status(200).json(userRole);
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+    res.status(500).json({ message: 'Failed to fetch user role' });
+  }
+}
+
+/**
+ * Create a new user role assignment.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+async function createUserRole(req, res) {
+  const { userId, roleId } = req.body;
+
+  if (!userId || !roleId) {
+    return res.status(400).json({ message: 'userId and roleId are required' });
+  }
+
+  try {
+    // Check if the role exists
+    const role = await Role.findById(roleId);
     if (!role) {
-      return res.status(404).json({ success: false, message: 'Role not found' });
+      return res.status(404).json({ message: 'Role not found' });
     }
-    res.status(200).json({ success: true, data: role });
+
+    // Check if the user role assignment already exists
+    const existingUserRole = await UserRole.findOne({ user: userId, role: roleId });
+    if (existingUserRole) {
+      return res.status(409).json({ message: 'User role assignment already exists' });
+    }
+
+    const newUserRole = new UserRole({ user: userId, role: roleId });
+    await newUserRole.save();
+
+    res.status(201).json(newUserRole);
   } catch (error) {
-    console.error('Error fetching role by ID:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch role' });
+    console.error('Error creating user role:', error);
+    res.status(500).json({ message: 'Failed to create user role' });
   }
 }
 
 /**
- * Create a new user role.
+ * Update an existing user role assignment.
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-async function createRole(req, res) {
+async function updateUserRole(req, res) {
+  const { id } = req.params;
+  const { userId, roleId } = req.body;
+
+  if (!userId || !roleId) {
+    return res.status(400).json({ message: 'userId and roleId are required' });
+  }
+
   try {
-    const { name, permissions, description } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ success: false, message: 'Role name is required' });
+    const role = await Role.findById(roleId);
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
     }
 
-    // Check if role with same name exists
-    const existingRole = await RoleModel.findOne({ name });
-    if (existingRole) {
-      return res.status(409).json({ success: false, message: 'Role name already exists' });
+    const userRole = await UserRole.findById(id);
+    if (!userRole) {
+      return res.status(404).json({ message: 'User role not found' });
     }
 
-    const newRole = new RoleModel({ name, permissions, description });
-    const savedRole = await newRole.save();
-    res.status(201).json({ success: true, data: savedRole });
+    userRole.user = userId;
+    userRole.role = roleId;
+    await userRole.save();
+
+    res.status(200).json(userRole);
   } catch (error) {
-    console.error('Error creating role:', error);
-    res.status(500).json({ success: false, message: 'Failed to create role' });
+    console.error('Error updating user role:', error);
+    res.status(500).json({ message: 'Failed to update user role' });
   }
 }
 
 /**
- * Update an existing user role.
+ * Delete a user role assignment.
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-async function updateRole(req, res) {
+async function deleteUserRole(req, res) {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    const updatedRole = await RoleModel.findByIdAndUpdate(id, updates, { new: true });
-    if (!updatedRole) {
-      return res.status(404).json({ success: false, message: 'Role not found' });
+    const userRole = await UserRole.findById(id);
+    if (!userRole) {
+      return res.status(404).json({ message: 'User role not found' });
     }
-
-    res.status(200).json({ success: true, data: updatedRole });
+    await userRole.remove();
+    res.status(200).json({ message: 'User role deleted successfully' });
   } catch (error) {
-    console.error('Error updating role:', error);
-    res.status(500).json({ success: false, message: 'Failed to update role' });
-  }
-}
-
-/**
- * Delete a user role.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-async function deleteRole(req, res) {
-  try {
-    const { id } = req.params;
-    const deletedRole = await RoleModel.findByIdAndDelete(id);
-    if (!deletedRole) {
-      return res.status(404).json({ success: false, message: 'Role not found' });
-    }
-    res.status(200).json({ success: true, message: 'Role deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting role:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete role' });
+    console.error('Error deleting user role:', error);
+    res.status(500).json({ message: 'Failed to delete user role' });
   }
 }
 
 module.exports = {
-  getAllRoles,
-  getRoleById,
-  createRole,
-  updateRole,
-  deleteRole,
+  getAllUserRoles,
+  getUserRoleById,
+  createUserRole,
+  updateUserRole,
+  deleteUserRole
 };
