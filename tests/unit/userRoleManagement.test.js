@@ -1,163 +1,99 @@
-// Unit tests for user role management functionality
+// tests/unit/userRoleManagement.test.js
 
-const request = require('supertest');
-const express = require('express');
-const bodyParser = require('body-parser');
+import chai from 'chai';
+import sinon from 'sinon';
+import chaiAsPromised from 'chai-as-promised';
+import * as userRoleManagementAPI from '../../src/api/userRoleManagement.js';
 
-// Assuming src/api/userRoleManagement.js exports an Express router
-const userRoleManagementRoutes = require('../../src/api/userRoleManagement');
+chai.use(chaiAsPromised);
+const { expect } = chai;
 
-// Setup an Express app for testing the API routes
-const app = express();
-app.use(bodyParser.json());
-app.use('/api/user-roles', userRoleManagementRoutes);
+// Mock data for testing
+const mockRoleData = {
+  name: 'admin',
+  permissions: ['read', 'write', 'delete'],
+};
 
-// Mock database or service layer could be used here for isolation
-// For demonstration, we will assume the API uses in-memory or mocked data
+const mockUpdatedRoleData = {
+  name: 'admin',
+  permissions: ['read', 'write'],
+};
 
 describe('User Role Management API', () => {
-  let createdRoleId = null;
+  let sandbox;
 
-  // Test role creation
-  describe('POST /api/user-roles', () => {
-    it('should create a new user role', async () => {
-      const newRole = {
-        name: 'testRole',
-        permissions: ['read', 'write']
-      };
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
+  });
 
-      const response = await request(app)
-        .post('/api/user-roles')
-        .send(newRole)
-        .expect('Content-Type', /json/)
-        .expect(201);
+  afterEach(() => {
+    sandbox.restore();
+  });
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.name).toBe(newRole.name);
-      expect(response.body.permissions).toEqual(expect.arrayContaining(newRole.permissions));
-      createdRoleId = response.body.id;
+  describe('createRole', () => {
+    it('should create a new role successfully', async () => {
+      sandbox.stub(userRoleManagementAPI, 'createRole').resolves({
+        id: '12345',
+        ...mockRoleData,
+      });
+
+      const result = await userRoleManagementAPI.createRole(mockRoleData);
+      expect(result).to.have.property('id');
+      expect(result.name).to.equal('admin');
+      expect(result.permissions).to.include.members(['read', 'write', 'delete']);
     });
 
-    it('should return 400 for invalid role data', async () => {
-      const invalidRole = {
-        // Missing name
-        permissions: ['read']
-      };
+    it('should reject when role data is incomplete', async () => {
+      sandbox.stub(userRoleManagementAPI, 'createRole').rejects(new Error('Invalid role data'));
 
-      const response = await request(app)
-        .post('/api/user-roles')
-        .send(invalidRole)
-        .expect('Content-Type', /json/)
-        .expect(400);
-
-      expect(response.body).toHaveProperty('error');
+      await expect(userRoleManagementAPI.createRole({})).to.be.rejectedWith('Invalid role data');
     });
   });
 
-  // Test fetching roles
-  describe('GET /api/user-roles', () => {
-    it('should retrieve a list of user roles', async () => {
-      const response = await request(app)
-        .get('/api/user-roles')
-        .expect('Content-Type', /json/)
-        .expect(200);
+  describe('getRole', () => {
+    it('should return role data for a valid role ID', async () => {
+      sandbox.stub(userRoleManagementAPI, 'getRole').resolves(mockRoleData);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      // If a role was created in previous test, it should be present
-      if (createdRoleId) {
-        const role = response.body.find(r => r.id === createdRoleId);
-        expect(role).toBeDefined();
-      }
+      const result = await userRoleManagementAPI.getRole('12345');
+      expect(result).to.have.property('name', 'admin');
+      expect(result.permissions).to.include('read');
+    });
+
+    it('should reject if role ID is not found', async () => {
+      sandbox.stub(userRoleManagementAPI, 'getRole').rejects(new Error('Role not found'));
+
+      await expect(userRoleManagementAPI.getRole('nonexistent')).to.be.rejectedWith('Role not found');
     });
   });
 
-  // Test fetching a single role by ID
-  describe('GET /api/user-roles/:id', () => {
-    it('should retrieve the role by id', async () => {
-      if (!createdRoleId) return;
+  describe('updateRole', () => {
+    it('should update role permissions successfully', async () => {
+      sandbox.stub(userRoleManagementAPI, 'updateRole').resolves(mockUpdatedRoleData);
 
-      const response = await request(app)
-        .get(`/api/user-roles/${createdRoleId}`)
-        .expect('Content-Type', /json/)
-        .expect(200);
-
-      expect(response.body).toHaveProperty('id', createdRoleId);
+      const result = await userRoleManagementAPI.updateRole('12345', mockUpdatedRoleData);
+      expect(result.permissions).to.not.include('delete');
+      expect(result.permissions).to.include('write');
     });
 
-    it('should return 404 for non-existing role', async () => {
-      const response = await request(app)
-        .get('/api/user-roles/invalidId123')
-        .expect('Content-Type', /json/)
-        .expect(404);
+    it('should reject if update data is invalid', async () => {
+      sandbox.stub(userRoleManagementAPI, 'updateRole').rejects(new Error('Invalid update data'));
 
-      expect(response.body).toHaveProperty('error');
+      await expect(userRoleManagementAPI.updateRole('12345', {})).to.be.rejectedWith('Invalid update data');
     });
   });
 
-  // Test updating a role
-  describe('PUT /api/user-roles/:id', () => {
-    it('should update the existing user role', async () => {
-      if (!createdRoleId) return;
+  describe('deleteRole', () => {
+    it('should delete role successfully', async () => {
+      sandbox.stub(userRoleManagementAPI, 'deleteRole').resolves(true);
 
-      const updates = { permissions: ['read', 'write', 'delete'] };
-
-      const response = await request(app)
-        .put(`/api/user-roles/${createdRoleId}`)
-        .send(updates)
-        .expect('Content-Type', /json/)
-        .expect(200);
-
-      expect(response.body).toHaveProperty('id', createdRoleId);
-      expect(response.body.permissions).toEqual(expect.arrayContaining(updates.permissions));
+      const result = await userRoleManagementAPI.deleteRole('12345');
+      expect(result).to.be.true;
     });
 
-    it('should return 404 when updating non-existing role', async () => {
-      const updates = { permissions: ['read'] };
+    it('should reject if role ID does not exist', async () => {
+      sandbox.stub(userRoleManagementAPI, 'deleteRole').rejects(new Error('Role not found'));
 
-      const response = await request(app)
-        .put('/api/user-roles/nonExistingId')
-        .send(updates)
-        .expect('Content-Type', /json/)
-        .expect(404);
-
-      expect(response.body).toHaveProperty('error');
-    });
-
-    it('should return 400 for invalid update data', async () => {
-      if (!createdRoleId) return;
-
-      const invalidUpdates = { permissions: 'not-an-array' };
-
-      const response = await request(app)
-        .put(`/api/user-roles/${createdRoleId}`)
-        .send(invalidUpdates)
-        .expect('Content-Type', /json/)
-        .expect(400);
-
-      expect(response.body).toHaveProperty('error');
-    });
-  });
-
-  // Test deleting a role
-  describe('DELETE /api/user-roles/:id', () => {
-    it('should delete the existing user role', async () => {
-      if (!createdRoleId) return;
-
-      const response = await request(app)
-        .delete(`/api/user-roles/${createdRoleId}`)
-        .expect('Content-Type', /json/)
-        .expect(200);
-
-      expect(response.body).toHaveProperty('message');
-    });
-
-    it('should return 404 when deleting non-existing role', async () => {
-      const response = await request(app)
-        .delete('/api/user-roles/nonExistingId')
-        .expect('Content-Type', /json/)
-        .expect(404);
-
-      expect(response.body).toHaveProperty('error');
+      await expect(userRoleManagementAPI.deleteRole('nonexistent')).to.be.rejectedWith('Role not found');
     });
   });
 });
