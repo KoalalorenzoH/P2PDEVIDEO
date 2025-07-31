@@ -1,134 +1,158 @@
+// tests/integration/userRoleManagementIntegration.test.js
+
 /**
- * Integration tests for user role management API
+ * Integration tests for user role management API routes
  *
- * These tests cover creating, reading, updating, and deleting user roles,
- * as well as role assignment and validation.
+ * This test suite covers the main functionalities of the user role management API,
+ * including creating, retrieving, updating, and deleting user roles.
+ *
+ * Dependencies:
+ * - src/api/userRoleManagementRoutes.js
+ *
+ * Testing framework: Jest
+ * HTTP request library: supertest
  */
 
 const request = require('supertest');
-const app = require('../../src/api/userRoleManagement');
 const mongoose = require('mongoose');
+const app = require('../../src/app'); // Assuming Express app is exported from src/app.js
 const UserRole = require('../../src/models/userRole');
-const User = require('../../src/models/userModel');
-const Role = require('../../src/models/roleModel');
 
-// Setup test database connection before running tests
-beforeAll(async () => {
-  const mongoUri = process.env.TEST_MONGO_URI || 'mongodb://localhost:27017/p2pdevideo_test';
-  await mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
-});
+// Test user role data samples
+const testRoleData = {
+  name: 'testRole',
+  description: 'A test role for integration tests',
+  permissions: ['read', 'write']
+};
 
-// Clean up collections after each test
-afterEach(async () => {
-  await UserRole.deleteMany({});
-  await User.deleteMany({});
-  await Role.deleteMany({});
-});
+// Updated data for role update
+const updatedRoleData = {
+  name: 'updatedTestRole',
+  description: 'Updated description',
+  permissions: ['read']
+};
 
-// Disconnect mongoose after all tests
-afterAll(async () => {
-  await mongoose.disconnect();
-});
+describe('User Role Management API Integration Tests', () => {
+  let server;
+  let createdRoleId;
 
-describe('User Role Management Integration Tests', () => {
-  let adminRole;
-  let userRole;
-  let testUser;
+  beforeAll(async () => {
+    // Connect to the test database
+    const mongoUri = process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/p2pdevideo_test';
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
 
-  beforeEach(async () => {
-    // Create roles
-    adminRole = new Role({ name: 'admin', description: 'Administrator role' });
-    userRole = new Role({ name: 'user', description: 'Standard user role' });
-    await adminRole.save();
-    await userRole.save();
-
-    // Create user
-    testUser = new User({ username: 'testuser', email: 'testuser@example.com', password: 'hashedpassword' });
-    await testUser.save();
+    // Start the server if needed (assuming app.listen returns server instance)
+    server = app.listen(0); // use ephemeral port
   });
 
-  test('should create a new user role assignment', async () => {
-    const res = await request(app)
-      .post('/roles/assign')
-      .send({ userId: testUser._id.toString(), roleId: adminRole._id.toString() })
+  afterAll(async () => {
+    // Cleanup: delete created roles
+    if (createdRoleId) {
+      await UserRole.findByIdAndDelete(createdRoleId);
+    }
+
+    await mongoose.connection.close();
+    if (server) {
+      server.close();
+    }
+  });
+
+  test('POST /api/user-roles - Create a new user role', async () => {
+    const response = await request(server)
+      .post('/api/user-roles')
+      .send(testRoleData)
+      .expect('Content-Type', /json/)
       .expect(201);
 
-    expect(res.body).toHaveProperty('message', 'Role assigned successfully');
-    expect(res.body.data).toHaveProperty('userId', testUser._id.toString());
-    expect(res.body.data).toHaveProperty('roleId', adminRole._id.toString());
+    expect(response.body).toHaveProperty('_id');
+    expect(response.body.name).toBe(testRoleData.name);
+    expect(response.body.description).toBe(testRoleData.description);
+    expect(Array.isArray(response.body.permissions)).toBe(true);
+    expect(response.body.permissions).toEqual(expect.arrayContaining(testRoleData.permissions));
 
-    // Verify in DB
-    const userRoleAssignment = await UserRole.findOne({ userId: testUser._id });
-    expect(userRoleAssignment).not.toBeNull();
-    expect(userRoleAssignment.roleId.toString()).toBe(adminRole._id.toString());
+    createdRoleId = response.body._id;
   });
 
-  test('should fetch all user role assignments', async () => {
-    // Assign role first
-    const userRoleAssignment = new UserRole({ userId: testUser._id, roleId: userRole._id });
-    await userRoleAssignment.save();
-
-    const res = await request(app)
-      .get('/roles')
+  test('GET /api/user-roles/:id - Retrieve the created user role', async () => {
+    const response = await request(server)
+      .get(`/api/user-roles/${createdRoleId}`)
+      .expect('Content-Type', /json/)
       .expect(200);
 
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThanOrEqual(1);
-    const found = res.body.find(r => r.userId === testUser._id.toString());
-    expect(found).toBeDefined();
+    expect(response.body).toHaveProperty('_id', createdRoleId);
+    expect(response.body.name).toBe(testRoleData.name);
   });
 
-  test('should update a user role assignment', async () => {
-    // Assign initial role
-    const userRoleAssignment = new UserRole({ userId: testUser._id, roleId: userRole._id });
-    await userRoleAssignment.save();
-
-    const res = await request(app)
-      .put(`/roles/${userRoleAssignment._id.toString()}`)
-      .send({ roleId: adminRole._id.toString() })
+  test('PUT /api/user-roles/:id - Update the user role', async () => {
+    const response = await request(server)
+      .put(`/api/user-roles/${createdRoleId}`)
+      .send(updatedRoleData)
+      .expect('Content-Type', /json/)
       .expect(200);
 
-    expect(res.body).toHaveProperty('message', 'User role updated successfully');
-    expect(res.body.data.roleId).toBe(adminRole._id.toString());
-
-    const updatedRole = await UserRole.findById(userRoleAssignment._id);
-    expect(updatedRole.roleId.toString()).toBe(adminRole._id.toString());
+    expect(response.body).toHaveProperty('_id', createdRoleId);
+    expect(response.body.name).toBe(updatedRoleData.name);
+    expect(response.body.description).toBe(updatedRoleData.description);
+    expect(response.body.permissions).toEqual(expect.arrayContaining(updatedRoleData.permissions));
   });
 
-  test('should delete a user role assignment', async () => {
-    const userRoleAssignment = new UserRole({ userId: testUser._id, roleId: userRole._id });
-    await userRoleAssignment.save();
-
-    const res = await request(app)
-      .delete(`/roles/${userRoleAssignment._id.toString()}`)
+  test('GET /api/user-roles - Retrieve list of user roles', async () => {
+    const response = await request(server)
+      .get('/api/user-roles')
+      .expect('Content-Type', /json/)
       .expect(200);
 
-    expect(res.body).toHaveProperty('message', 'User role deleted successfully');
-
-    const deleted = await UserRole.findById(userRoleAssignment._id);
-    expect(deleted).toBeNull();
+    expect(Array.isArray(response.body)).toBe(true);
+    // The created role should be in the list
+    const foundRole = response.body.find(role => role._id === createdRoleId);
+    expect(foundRole).toBeDefined();
   });
 
-  test('should return 404 when updating non-existent user role', async () => {
-    const fakeId = new mongoose.Types.ObjectId();
-    const res = await request(app)
-      .put(`/roles/${fakeId.toString()}`)
-      .send({ roleId: adminRole._id.toString() })
+  test('DELETE /api/user-roles/:id - Delete the user role', async () => {
+    await request(server)
+      .delete(`/api/user-roles/${createdRoleId}`)
+      .expect(204);
+
+    // Verify deletion
+    const getResponse = await request(server)
+      .get(`/api/user-roles/${createdRoleId}`)
       .expect(404);
 
-    expect(res.body).toHaveProperty('error', 'User role not found');
+    createdRoleId = null; // Role deleted
   });
 
-  test('should return 404 when deleting non-existent user role', async () => {
-    const fakeId = new mongoose.Types.ObjectId();
-    const res = await request(app)
-      .delete(`/roles/${fakeId.toString()}`)
+  test('GET /api/user-roles/:id - Return 404 for non-existent role', async () => {
+    const nonExistentId = new mongoose.Types.ObjectId();
+    await request(server)
+      .get(`/api/user-roles/${nonExistentId}`)
       .expect(404);
+  });
 
-    expect(res.body).toHaveProperty('error', 'User role not found');
+  test('PUT /api/user-roles/:id - Return 404 for updating non-existent role', async () => {
+    const nonExistentId = new mongoose.Types.ObjectId();
+    await request(server)
+      .put(`/api/user-roles/${nonExistentId}`)
+      .send(updatedRoleData)
+      .expect(404);
+  });
+
+  test('DELETE /api/user-roles/:id - Return 404 for deleting non-existent role', async () => {
+    const nonExistentId = new mongoose.Types.ObjectId();
+    await request(server)
+      .delete(`/api/user-roles/${nonExistentId}`)
+      .expect(404);
+  });
+
+  test('POST /api/user-roles - Return 400 for missing required fields', async () => {
+    const invalidData = {
+      description: 'Missing name field'
+    };
+    await request(server)
+      .post('/api/user-roles')
+      .send(invalidData)
+      .expect(400);
   });
 });
-
