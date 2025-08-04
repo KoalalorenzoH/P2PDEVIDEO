@@ -1,151 +1,108 @@
 // tests/unit/userRoleManagement.test.js
+// Unit tests for user role management functionality
 
-/**
- * Unit tests for user role management functionality
- *
- * These tests cover the main API functions for managing user roles,
- * including creation, retrieval, update, and deletion of roles.
- */
+import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
+import * as userRoleManagement from '../../src/controllers/userRoleManagement.js';
 
-const chai = require('chai');
-const sinon = require('sinon');
-const expect = chai.expect;
+// Mock data and utilities
+const mockRoles = [
+  { id: 'role1', name: 'admin', permissions: ['read', 'write', 'delete'] },
+  { id: 'role2', name: 'user', permissions: ['read'] },
+];
 
-// Import the user role management API module
-const userRoleManagement = require('../../src/api/userRoleManagement');
+// We will mock database or external calls inside userRoleManagement if any
+// For this example, we assume userRoleManagement exports functions like:
+// getAllRoles, getRoleById, createRole, updateRole, deleteRole
 
-// Mock data for testing
-const mockRole = {
-  id: 'role123',
-  name: 'admin',
-  permissions: ['read', 'write', 'delete']
-};
+// Mock implementations for demonstration purposes
+let rolesDB = [...mockRoles];
 
-const mockRoleUpdate = {
-  name: 'superadmin',
-  permissions: ['read', 'write', 'delete', 'manage']
-};
+vi.mock('../../src/models/userRole.js', () => {
+  return {
+    find: vi.fn(() => Promise.resolve(rolesDB)),
+    findById: vi.fn((id) => Promise.resolve(rolesDB.find(r => r.id === id) || null)),
+    create: vi.fn((role) => {
+      rolesDB.push(role);
+      return Promise.resolve(role);
+    }),
+    findByIdAndUpdate: vi.fn((id, update) => {
+      const index = rolesDB.findIndex(r => r.id === id);
+      if (index === -1) return Promise.resolve(null);
+      rolesDB[index] = { ...rolesDB[index], ...update };
+      return Promise.resolve(rolesDB[index]);
+    }),
+    findByIdAndDelete: vi.fn((id) => {
+      const index = rolesDB.findIndex(r => r.id === id);
+      if (index === -1) return Promise.resolve(null);
+      const deleted = rolesDB.splice(index, 1);
+      return Promise.resolve(deleted[0]);
+    }),
+  };
+});
 
-// Mock database or storage (simulate with a simple in-memory object)
-let rolesDB = {};
-
-// Stub functions for the userRoleManagement API to simulate database operations
+// Reset rolesDB before each test
 beforeEach(() => {
-  rolesDB = {};
-
-  sinon.stub(userRoleManagement, 'createRole').callsFake(async (roleData) => {
-    if (!roleData.name) {
-      throw new Error('Role name is required');
-    }
-    const newRole = { ...roleData, id: 'generated-id' };
-    rolesDB[newRole.id] = newRole;
-    return newRole;
-  });
-
-  sinon.stub(userRoleManagement, 'getRoleById').callsFake(async (id) => {
-    if (!rolesDB[id]) {
-      throw new Error('Role not found');
-    }
-    return rolesDB[id];
-  });
-
-  sinon.stub(userRoleManagement, 'updateRole').callsFake(async (id, updateData) => {
-    if (!rolesDB[id]) {
-      throw new Error('Role not found');
-    }
-    rolesDB[id] = { ...rolesDB[id], ...updateData };
-    return rolesDB[id];
-  });
-
-  sinon.stub(userRoleManagement, 'deleteRole').callsFake(async (id) => {
-    if (!rolesDB[id]) {
-      throw new Error('Role not found');
-    }
-    const deleted = rolesDB[id];
-    delete rolesDB[id];
-    return deleted;
-  });
+  rolesDB = [...mockRoles];
 });
 
-// Restore the original functions after each test
-afterEach(() => {
-  sinon.restore();
-});
-
-// Test suite
-describe('User Role Management API', () => {
-  describe('createRole()', () => {
-    it('should create a new role successfully', async () => {
-      const roleData = { name: 'admin', permissions: ['read', 'write'] };
-      const result = await userRoleManagement.createRole(roleData);
-      expect(result).to.have.property('id');
-      expect(result.name).to.equal('admin');
-      expect(result.permissions).to.include('read');
-    });
-
-    it('should throw an error if role name is missing', async () => {
-      const roleData = { permissions: ['read'] };
-      try {
-        await userRoleManagement.createRole(roleData);
-      } catch (err) {
-        expect(err).to.be.instanceOf(Error);
-        expect(err.message).to.equal('Role name is required');
-      }
+describe('User Role Management Controller', () => {
+  describe('getAllRoles', () => {
+    it('should return all user roles', async () => {
+      const roles = await userRoleManagement.getAllRoles();
+      expect(roles).toEqual(mockRoles);
     });
   });
 
-  describe('getRoleById()', () => {
-    it('should return the role for a valid ID', async () => {
-      // Setup: add role to mock DB
-      rolesDB['role1'] = { id: 'role1', name: 'user', permissions: ['read'] };
+  describe('getRoleById', () => {
+    it('should return a role by its id', async () => {
       const role = await userRoleManagement.getRoleById('role1');
-      expect(role).to.have.property('id', 'role1');
-      expect(role.name).to.equal('user');
+      expect(role).toEqual(mockRoles[0]);
     });
 
-    it('should throw an error if role not found', async () => {
-      try {
-        await userRoleManagement.getRoleById('nonexistent');
-      } catch (err) {
-        expect(err).to.be.instanceOf(Error);
-        expect(err.message).to.equal('Role not found');
-      }
+    it('should return null if role does not exist', async () => {
+      const role = await userRoleManagement.getRoleById('nonexistent');
+      expect(role).toBeNull();
     });
   });
 
-  describe('updateRole()', () => {
-    it('should update an existing role', async () => {
-      rolesDB['role2'] = { id: 'role2', name: 'moderator', permissions: ['read', 'write'] };
-      const updatedRole = await userRoleManagement.updateRole('role2', mockRoleUpdate);
-      expect(updatedRole.name).to.equal('superadmin');
-      expect(updatedRole.permissions).to.include('manage');
+  describe('createRole', () => {
+    it('should create and return a new role', async () => {
+      const newRole = { id: 'role3', name: 'moderator', permissions: ['read', 'write'] };
+      const created = await userRoleManagement.createRole(newRole);
+      expect(created).toEqual(newRole);
+      expect(rolesDB).toContainEqual(newRole);
     });
 
-    it('should throw an error if role to update does not exist', async () => {
-      try {
-        await userRoleManagement.updateRole('nonexistent', mockRoleUpdate);
-      } catch (err) {
-        expect(err).to.be.instanceOf(Error);
-        expect(err.message).to.equal('Role not found');
-      }
+    it('should throw error if role name already exists', async () => {
+      const duplicateRole = { id: 'role4', name: 'admin', permissions: ['read'] };
+      await expect(userRoleManagement.createRole(duplicateRole)).rejects.toThrow('Role name already exists');
     });
   });
 
-  describe('deleteRole()', () => {
-    it('should delete an existing role', async () => {
-      rolesDB['role3'] = { id: 'role3', name: 'viewer', permissions: ['read'] };
-      const deletedRole = await userRoleManagement.deleteRole('role3');
-      expect(deletedRole.name).to.equal('viewer');
-      expect(rolesDB['role3']).to.be.undefined;
+  describe('updateRole', () => {
+    it('should update an existing role and return it', async () => {
+      const updates = { name: 'superadmin' };
+      const updated = await userRoleManagement.updateRole('role1', updates);
+      expect(updated.name).toBe('superadmin');
+      expect(rolesDB.find(r => r.id === 'role1').name).toBe('superadmin');
     });
 
-    it('should throw an error if role to delete does not exist', async () => {
-      try {
-        await userRoleManagement.deleteRole('nonexistent');
-      } catch (err) {
-        expect(err).to.be.instanceOf(Error);
-        expect(err.message).to.equal('Role not found');
-      }
+    it('should return null when updating non-existing role', async () => {
+      const updated = await userRoleManagement.updateRole('invalid', { name: 'test' });
+      expect(updated).toBeNull();
+    });
+  });
+
+  describe('deleteRole', () => {
+    it('should delete an existing role and return it', async () => {
+      const deleted = await userRoleManagement.deleteRole('role2');
+      expect(deleted.id).toBe('role2');
+      expect(rolesDB.find(r => r.id === 'role2')).toBeUndefined();
+    });
+
+    it('should return null when deleting non-existing role', async () => {
+      const deleted = await userRoleManagement.deleteRole('invalid');
+      expect(deleted).toBeNull();
     });
   });
 });
