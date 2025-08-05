@@ -1,85 +1,58 @@
 /**
- * Middleware for authentication and role-based authorization
- * 
- * This module provides middleware functions to verify authentication tokens
- * and enforce role-based access control in the Express.js application.
- * 
- * It assumes the use of JWT for token-based authentication.
+ * Authentication and Authorization Middleware
+ *
+ * This middleware handles token-based authentication using JWT and role-based authorization.
+ * It verifies the JWT token provided in the Authorization header and extracts user information.
+ * It also provides a middleware function to enforce role-based access control.
  */
 
 const jwt = require('jsonwebtoken');
-const { User } = require('../models/userModel');
-
-// Secret or key for JWT verification - ideally should come from environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
+const config = require('../config/config'); // Assuming a config file that contains secrets
 
 /**
- * Middleware to authenticate the user by validating JWT token.
- * Extracts token from Authorization header and verifies it.
+ * Middleware to verify JWT token and authenticate user.
+ *
+ * Expects Authorization header with Bearer token.
  * Attaches user info to req.user on success.
- * 
+ *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
+ * @param {Function} next - Next middleware function
  */
-async function authenticateToken(req, res, next) {
-  try {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) {
-      return res.status(401).json({ message: 'Authorization header missing' });
-    }
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-    const token = authHeader.split(' ')[1]; // Expecting Bearer token
-    if (!token) {
-      return res.status(401).json({ message: 'Token missing' });
-    }
-
-    // Verify JWT token
-    jwt.verify(token, JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ message: 'Invalid or expired token' });
-      }
-
-      // Attach user info to request
-      // Assuming decoded contains user id (e.g., decoded.id)
-      const user = await User.findById(decoded.id).select('-password');
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      req.user = user;
-      next();
-    });
-  } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(500).json({ message: 'Internal server error during authentication' });
+  if (!token) {
+    return res.status(401).json({ message: 'Access token missing' });
   }
+
+  jwt.verify(token, config.jwtSecret, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
 }
 
 /**
  * Middleware to authorize user based on roles.
- * 
- * @param {...string} allowedRoles - List of roles allowed to access the route
+ *
+ * Usage: authorizeRoles('admin', 'moderator')
+ *
+ * @param  {...string} roles - Allowed roles
  * @returns {Function} Middleware function
  */
-function authorizeRoles(...allowedRoles) {
+function authorizeRoles(...roles) {
   return (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: 'Unauthorized: User not authenticated' });
-      }
-
-      const userRoles = req.user.roles || [];
-      const hasRole = userRoles.some(role => allowedRoles.includes(role));
-      if (!hasRole) {
-        return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Authorization error:', error);
-      res.status(500).json({ message: 'Internal server error during authorization' });
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({ message: 'User role information missing' });
     }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    }
+    next();
   };
 }
 
