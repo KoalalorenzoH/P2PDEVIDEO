@@ -1,48 +1,48 @@
 /**
- * Middleware for validating user role requests.
- * Uses validation functions from src/utils/roleValidation.js.
+ * Middleware for validating user role requests
  *
- * This middleware checks the request body for required fields and validates
- * user role data before allowing the request to proceed.
+ * This middleware uses the role validation utility functions to validate
+ * incoming requests related to user role management.
+ * It ensures that the request payloads conform to expected formats and constraints.
  *
- * Responds with HTTP 400 Bad Request if validation fails.
+ * If validation fails, it responds with HTTP 400 and error details.
+ * Otherwise, it passes control to the next middleware or route handler.
  */
 
-const { validateRoleData } = require('../utils/roleValidation');
+const { validateRoleData, validateRoleId } = require('../utils/roleValidation');
 
 /**
- * Middleware function to validate role data in the request body.
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
+ * Middleware to validate role creation or update data in request body
  */
-function roleValidationMiddleware(req, res, next) {
-  try {
-    const roleData = req.body;
-
-    // Validate role data using utility function
-    const { valid, errors } = validateRoleData(roleData);
-
-    if (!valid) {
-      // Return 400 Bad Request with validation errors
-      return res.status(400).json({
-        success: false,
-        message: 'Role validation failed',
-        errors,
-      });
-    }
-
-    // Validation passed, proceed to next middleware or controller
-    next();
-  } catch (error) {
-    // Unexpected error
-    console.error('Error in roleValidationMiddleware:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during role validation',
+function validateRoleRequest(req, res, next) {
+  const { error } = validateRoleData(req.body);
+  if (error) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid role data',
+      details: error.details
     });
   }
+  next();
 }
 
-module.exports = roleValidationMiddleware;
+/**
+ * Middleware to validate role ID parameter in request params
+ */
+function validateRoleIdParam(req, res, next) {
+  const { roleId } = req.params;
+  const { error } = validateRoleId(roleId);
+  if (error) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid role ID',
+      details: error.details
+    });
+  }
+  next();
+}
+
+module.exports = {
+  validateRoleRequest,
+  validateRoleIdParam
+};
