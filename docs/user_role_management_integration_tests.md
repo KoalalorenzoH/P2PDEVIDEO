@@ -1,80 +1,81 @@
 # User Role Management Integration Tests
 
+This document provides detailed information and guidelines about the integration tests for the User Role Management feature of the P2PDEVIDEO project.
+
 ## Overview
 
-This document provides comprehensive documentation for the integration tests of the User Role Management feature in the P2PDEVIDEO project. These tests ensure that the user role management functionalities work correctly when integrated with other system components such as authentication, authorization, user APIs, and database operations.
+The User Role Management integration tests aim to verify the correct operation of the user role management APIs and controllers in a real-world scenario by testing end-to-end interactions involving multiple components.
 
-## Purpose
+These tests validate the following functionalities:
 
-The integration tests validate the following aspects:
+- Creating new user roles
+- Retrieving existing user roles
+- Updating user role details
+- Deleting user roles
+- Assigning roles to users and verifying role permissions
+- Ensuring role-based access control enforcement
 
-- Role creation, updating, retrieval, and deletion workflows.
-- Proper enforcement of role-based access control (RBAC).
-- Interaction with user entities and role assignments.
-- Error handling and validation mechanisms.
-- API endpoint correctness and middleware integration.
+## Location of Tests
 
-## Test Location
+The primary integration test file for user role management is located at:
 
-The integration tests are located in:
+`tests/integration/userRoleManagementIntegration.test.js`
 
-`tests/integration/userRoleIntegration.test.js`
+This file contains comprehensive test cases covering all the main user role management features.
 
-## Test Scenarios
+## Test Scenarios Covered
 
-### 1. Role CRUD Operations
-- Create a new role with valid attributes.
-- Retrieve roles list and individual role details.
-- Update role attributes and verify changes.
-- Delete roles and ensure they are removed.
-- Handle attempts to create duplicate roles or invalid data.
+1. **Role Creation**
+   - Validates successful creation of new roles with required fields.
+   - Handles attempts to create duplicate roles or invalid data.
 
-### 2. Role Assignment to Users
-- Assign roles to users and verify the association.
-- Remove roles from users and validate the update.
-- Prevent assigning non-existent roles.
+2. **Role Retrieval**
+   - Fetches all roles and individual roles by ID.
+   - Handles non-existent role requests gracefully.
 
-### 3. Access Control Enforcement
-- Verify users with proper roles can access protected endpoints.
-- Ensure users without required roles are denied access.
-- Test middleware that enforces role-based permissions.
+3. **Role Update**
+   - Updates role properties such as name and permissions.
+   - Validates input data and handles errors.
 
-### 4. Validation and Error Handling
-- Confirm validation errors are returned for invalid inputs.
-- Test error responses for unauthorized access attempts.
-- Verify system behavior on database failures or exceptions.
+4. **Role Deletion**
+   - Deletes roles and verifies they are no longer accessible.
+   - Checks behavior when deleting roles assigned to users.
 
-## Running the Tests
+5. **Role Assignment to Users**
+   - Assigns roles to users and verifies permissions.
+   - Ensures users without appropriate roles are restricted.
 
-To run the user role management integration tests, execute the following command from the project root:
+6. **Access Control Enforcement**
+   - Tests that APIs enforce role-based access control correctly.
+
+## Running the Integration Tests
+
+To run the user role management integration tests, use the following command in the project root:
 
 ```bash
-npm run test:integration -- tests/integration/userRoleIntegration.test.js
+npm run test:integration -- tests/integration/userRoleManagementIntegration.test.js
 ```
 
-Ensure the test environment is properly configured with access to the test database and any required environment variables.
+Ensure that the test environment is correctly set up with access to the test database and necessary environment variables.
 
-## Dependencies
+## Best Practices for Writing Additional Tests
 
-The integration tests depend on:
+- Use descriptive test case names that clearly state the intended behavior.
+- Handle setup and teardown of test data to keep tests isolated.
+- Mock external dependencies where applicable.
+- Aim for full coverage of both positive and negative scenarios.
+- Validate responses thoroughly including status codes, response body, and side effects.
 
-- User authentication and session management modules.
-- User API endpoints.
-- Role management API and controllers.
-- Database connectivity and models.
+## Related Documentation
 
-## Best Practices
+- [User Role Management API Documentation](./user_role_management_api.md)
+- [User Role Management Feature Guide](./user_role_management_guide.md)
+- [User Role Management Unit Tests Documentation](./user_role_management.md)
 
-- Run these integration tests regularly during development to catch integration issues early.
-- Maintain up-to-date tests as new role features or API changes are introduced.
-- Use these tests as a reference for expected role management behaviors.
+## Contact
 
-## Additional Resources
-
-- [User Role Management API Documentation](./user_role_management.md)
-- [Role Management Guide](./role_management_guide.md)
-- [User Management Integration Tests](./user_management_integration_tests.md)
+For questions or contributions related to these integration tests, please contact the development team or open an issue in the repository.
 
 ---
 
-This documentation complements the testing strategy for the P2PDEVIDEO project and supports maintaining a robust and secure user role management system.
+*Document generated for P2PDEVIDEO project - Decentralized Encrypted Peer-to-Peer Video Network*
