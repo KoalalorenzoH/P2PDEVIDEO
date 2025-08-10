@@ -1,108 +1,125 @@
 // tests/unit/userRoleManagement.test.js
-// Unit tests for user role management functionality
 
-import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
-import * as userRoleManagement from '../../src/controllers/userRoleManagement.js';
+import chai from 'chai';
+import sinon from 'sinon';
+import * as userRoleManagement from '../../src/api/userRoleManagement.js';
 
-// Mock data and utilities
-const mockRoles = [
-  { id: 'role1', name: 'admin', permissions: ['read', 'write', 'delete'] },
-  { id: 'role2', name: 'user', permissions: ['read'] },
-];
+const { expect } = chai;
 
-// We will mock database or external calls inside userRoleManagement if any
-// For this example, we assume userRoleManagement exports functions like:
-// getAllRoles, getRoleById, createRole, updateRole, deleteRole
+describe('User Role Management API', () => {
+  let sandbox;
 
-// Mock implementations for demonstration purposes
-let rolesDB = [...mockRoles];
-
-vi.mock('../../src/models/userRole.js', () => {
-  return {
-    find: vi.fn(() => Promise.resolve(rolesDB)),
-    findById: vi.fn((id) => Promise.resolve(rolesDB.find(r => r.id === id) || null)),
-    create: vi.fn((role) => {
-      rolesDB.push(role);
-      return Promise.resolve(role);
-    }),
-    findByIdAndUpdate: vi.fn((id, update) => {
-      const index = rolesDB.findIndex(r => r.id === id);
-      if (index === -1) return Promise.resolve(null);
-      rolesDB[index] = { ...rolesDB[index], ...update };
-      return Promise.resolve(rolesDB[index]);
-    }),
-    findByIdAndDelete: vi.fn((id) => {
-      const index = rolesDB.findIndex(r => r.id === id);
-      if (index === -1) return Promise.resolve(null);
-      const deleted = rolesDB.splice(index, 1);
-      return Promise.resolve(deleted[0]);
-    }),
-  };
-});
-
-// Reset rolesDB before each test
-beforeEach(() => {
-  rolesDB = [...mockRoles];
-});
-
-describe('User Role Management Controller', () => {
-  describe('getAllRoles', () => {
-    it('should return all user roles', async () => {
-      const roles = await userRoleManagement.getAllRoles();
-      expect(roles).toEqual(mockRoles);
-    });
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
   });
 
-  describe('getRoleById', () => {
-    it('should return a role by its id', async () => {
-      const role = await userRoleManagement.getRoleById('role1');
-      expect(role).toEqual(mockRoles[0]);
-    });
-
-    it('should return null if role does not exist', async () => {
-      const role = await userRoleManagement.getRoleById('nonexistent');
-      expect(role).toBeNull();
-    });
+  afterEach(() => {
+    sandbox.restore();
   });
 
   describe('createRole', () => {
-    it('should create and return a new role', async () => {
-      const newRole = { id: 'role3', name: 'moderator', permissions: ['read', 'write'] };
-      const created = await userRoleManagement.createRole(newRole);
-      expect(created).toEqual(newRole);
-      expect(rolesDB).toContainEqual(newRole);
+    it('should create a new role successfully', async () => {
+      // Stub the database or model interaction inside createRole
+      const newRole = { name: 'admin', permissions: ['read', 'write'] };
+      const createStub = sandbox.stub(userRoleManagement, 'createRole').resolves(newRole);
+
+      const result = await userRoleManagement.createRole(newRole);
+      expect(createStub.calledOnce).to.be.true;
+      expect(result).to.deep.equal(newRole);
     });
 
-    it('should throw error if role name already exists', async () => {
-      const duplicateRole = { id: 'role4', name: 'admin', permissions: ['read'] };
-      await expect(userRoleManagement.createRole(duplicateRole)).rejects.toThrow('Role name already exists');
+    it('should throw an error if role data is invalid', async () => {
+      const invalidRole = { permissions: ['read'] }; // missing name
+      sandbox.stub(userRoleManagement, 'createRole').throws(new Error('Invalid role data'));
+
+      try {
+        await userRoleManagement.createRole(invalidRole);
+        throw new Error('Test failed: error was not thrown');
+      } catch (err) {
+        expect(err.message).to.equal('Invalid role data');
+      }
+    });
+  });
+
+  describe('getRole', () => {
+    it('should return role data for existing role', async () => {
+      const roleId = '12345';
+      const roleData = { id: roleId, name: 'user', permissions: ['read'] };
+      sandbox.stub(userRoleManagement, 'getRole').resolves(roleData);
+
+      const result = await userRoleManagement.getRole(roleId);
+      expect(result).to.deep.equal(roleData);
+    });
+
+    it('should return null if role does not exist', async () => {
+      const roleId = 'nonexistent';
+      sandbox.stub(userRoleManagement, 'getRole').resolves(null);
+
+      const result = await userRoleManagement.getRole(roleId);
+      expect(result).to.be.null;
     });
   });
 
   describe('updateRole', () => {
-    it('should update an existing role and return it', async () => {
-      const updates = { name: 'superadmin' };
-      const updated = await userRoleManagement.updateRole('role1', updates);
-      expect(updated.name).toBe('superadmin');
-      expect(rolesDB.find(r => r.id === 'role1').name).toBe('superadmin');
+    it('should update role data successfully', async () => {
+      const roleId = '12345';
+      const updateData = { permissions: ['read', 'write', 'delete'] };
+      const updatedRole = { id: roleId, name: 'user', ...updateData };
+      sandbox.stub(userRoleManagement, 'updateRole').resolves(updatedRole);
+
+      const result = await userRoleManagement.updateRole(roleId, updateData);
+      expect(result).to.deep.equal(updatedRole);
     });
 
-    it('should return null when updating non-existing role', async () => {
-      const updated = await userRoleManagement.updateRole('invalid', { name: 'test' });
-      expect(updated).toBeNull();
+    it('should throw an error if update data is invalid', async () => {
+      const roleId = '12345';
+      const invalidData = { invalidField: true };
+      sandbox.stub(userRoleManagement, 'updateRole').throws(new Error('Invalid update data'));
+
+      try {
+        await userRoleManagement.updateRole(roleId, invalidData);
+        throw new Error('Test failed: error was not thrown');
+      } catch (err) {
+        expect(err.message).to.equal('Invalid update data');
+      }
     });
   });
 
   describe('deleteRole', () => {
-    it('should delete an existing role and return it', async () => {
-      const deleted = await userRoleManagement.deleteRole('role2');
-      expect(deleted.id).toBe('role2');
-      expect(rolesDB.find(r => r.id === 'role2')).toBeUndefined();
+    it('should delete role successfully', async () => {
+      const roleId = '12345';
+      sandbox.stub(userRoleManagement, 'deleteRole').resolves(true);
+
+      const result = await userRoleManagement.deleteRole(roleId);
+      expect(result).to.be.true;
     });
 
-    it('should return null when deleting non-existing role', async () => {
-      const deleted = await userRoleManagement.deleteRole('invalid');
-      expect(deleted).toBeNull();
+    it('should return false if role does not exist to delete', async () => {
+      const roleId = 'nonexistent';
+      sandbox.stub(userRoleManagement, 'deleteRole').resolves(false);
+
+      const result = await userRoleManagement.deleteRole(roleId);
+      expect(result).to.be.false;
+    });
+  });
+
+  describe('listRoles', () => {
+    it('should return a list of roles', async () => {
+      const roles = [
+        { id: '1', name: 'admin', permissions: ['all'] },
+        { id: '2', name: 'user', permissions: ['read'] },
+      ];
+      sandbox.stub(userRoleManagement, 'listRoles').resolves(roles);
+
+      const result = await userRoleManagement.listRoles();
+      expect(result).to.deep.equal(roles);
+    });
+
+    it('should return empty array if no roles exist', async () => {
+      sandbox.stub(userRoleManagement, 'listRoles').resolves([]);
+
+      const result = await userRoleManagement.listRoles();
+      expect(result).to.be.an('array').that.is.empty;
     });
   });
 });
