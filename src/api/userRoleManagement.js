@@ -1,54 +1,55 @@
 /**
- * src/api/userRoleManagement.js
+ * User Role Management API
  *
- * API endpoints for managing user roles.
- * Provides CRUD operations for user roles management.
+ * This module defines the API endpoints for managing user roles.
+ * It provides routes for creating, reading, updating, and deleting user roles.
  *
- * This module uses Express router to define API routes.
+ * The API uses Express router and controllers to handle the business logic.
  */
 
 const express = require('express');
 const router = express.Router();
 
-// Assuming a userRoleController with the required methods exists
-const userRoleController = require('../controllers/userRoleController');
+// Import the UserRoleManagementController
+const userRoleManagementController = require('../controllers/userRoleManagementController');
 
 // Middleware for authentication and authorization can be added here
-// For example: const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
+// For example: const authMiddleware = require('../middleware/authMiddleware');
+// router.use(authMiddleware.verifyToken);
 
 /**
- * @route   GET /api/user-roles
+ * @route   GET /user-roles
  * @desc    Get all user roles
- * @access  Protected (Admin, or authorized roles)
+ * @access  Protected (authentication and authorization middleware should be applied)
  */
-router.get('/', /* authenticate, authorizeRoles(['admin']), */ userRoleController.getAllRoles);
+router.get('/user-roles', userRoleManagementController.getAllRoles);
 
 /**
- * @route   GET /api/user-roles/:id
+ * @route   GET /user-roles/:id
  * @desc    Get a single user role by ID
  * @access  Protected
  */
-router.get('/:id', /* authenticate, authorizeRoles(['admin']), */ userRoleController.getRoleById);
+router.get('/user-roles/:id', userRoleManagementController.getRoleById);
 
 /**
- * @route   POST /api/user-roles
+ * @route   POST /user-roles
  * @desc    Create a new user role
- * @access  Protected (Admin)
+ * @access  Protected
  */
-router.post('/', /* authenticate, authorizeRoles(['admin']), */ userRoleController.createRole);
+router.post('/user-roles', userRoleManagementController.createRole);
 
 /**
- * @route   PUT /api/user-roles/:id
- * @desc    Update an existing user role
- * @access  Protected (Admin)
+ * @route   PUT /user-roles/:id
+ * @desc    Update an existing user role by ID
+ * @access  Protected
  */
-router.put('/:id', /* authenticate, authorizeRoles(['admin']), */ userRoleController.updateRole);
+router.put('/user-roles/:id', userRoleManagementController.updateRole);
 
 /**
- * @route   DELETE /api/user-roles/:id
- * @desc    Delete a user role
- * @access  Protected (Admin)
+ * @route   DELETE /user-roles/:id
+ * @desc    Delete a user role by ID
+ * @access  Protected
  */
-router.delete('/:id', /* authenticate, authorizeRoles(['admin']), */ userRoleController.deleteRole);
+router.delete('/user-roles/:id', userRoleManagementController.deleteRole);
 
 module.exports = router;
