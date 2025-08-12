@@ -1,60 +1,55 @@
 /**
  * Middleware for user role authorization and validation
  *
- * This middleware validates the roles provided in the request body,
- * checks if the user has the necessary roles for the requested operation,
- * and ensures proper authorization.
+ * This middleware validates the user's roles based on the request
+ * and ensures that the user has the necessary permissions to proceed.
+ * It uses utility functions from src/utils/userRoleValidation.js to
+ * perform the validation logic.
  *
- * Dependencies:
- * - src/utils/userRoleValidation.js
- *
- * Usage:
- * Attach these middlewares to routes that require user role validation
- * or authorization.
+ * @module middleware/userRoleMiddleware
  */
 
-const { validateUserRoleData, isValidRole } = require('../utils/userRoleValidation');
+const { validateUserRoles, hasRequiredRole } = require('../utils/userRoleValidation');
 
 /**
- * Middleware to validate roles array in request body.
- *
- * Checks if roles is an array and each role is valid.
- * Responds with 400 Bad Request if validation fails.
- */
-function validateRolesMiddleware(req, res, next) {
-  const { roles } = req.body;
-  if (!Array.isArray(roles)) {
-    return res.status(400).json({ error: 'Roles must be an array.' });
-  }
-  for (const role of roles) {
-    if (!isValidRole(role)) {
-      return res.status(400).json({ error: `Invalid role: ${role}` });
-    }
-  }
-  next();
-}
-
-/**
- * Middleware to check if the current authenticated user has required roles.
+ * Middleware to validate user roles present in the request user object.
  *
  * @param {Array<string>} requiredRoles - Roles required to access the route
- * @returns {Function} Express middleware function
+ * @returns {function} Express middleware function
  */
-function authorizeRoles(requiredRoles = []) {
+function userRoleMiddleware(requiredRoles = []) {
   return (req, res, next) => {
-    const userRoles = req.user && req.user.roles;
-    if (!userRoles || !Array.isArray(userRoles)) {
-      return res.status(403).json({ error: 'User roles not found or invalid.' });
+    try {
+      const user = req.user;
+
+      if (!user) {
+        return res.status(401).json({ message: 'Unauthorized: User not found in request' });
+      }
+
+      if (!user.roles || !Array.isArray(user.roles)) {
+        return res.status(403).json({ message: 'Forbidden: User roles are not defined properly' });
+      }
+
+      // Validate roles using utility function
+      const validRoles = validateUserRoles(user.roles);
+      if (!validRoles) {
+        return res.status(403).json({ message: 'Forbidden: Invalid user roles' });
+      }
+
+      // Check if user has at least one of the required roles
+      if (requiredRoles.length > 0 && !hasRequiredRole(user.roles, requiredRoles)) {
+        return res.status(403).json({ message: 'Forbidden: Insufficient role permissions' });
+      }
+
+      // Roles validated and authorized
+      next();
+    } catch (error) {
+      console.error('Error in userRoleMiddleware:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
     }
-    const hasRole = requiredRoles.some(role => userRoles.includes(role));
-    if (!hasRole) {
-      return res.status(403).json({ error: 'User does not have required roles.' });
-    }
-    next();
   };
 }
 
 module.exports = {
-  validateRolesMiddleware,
-  authorizeRoles
+  userRoleMiddleware
 };
