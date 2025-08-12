@@ -1,21 +1,68 @@
 /**
  * userRoleValidation.js
- *
+ * 
  * Validation logic for user role data input.
- * Ensures user role objects conform to expected structure and constraints.
+ * Ensures that user role data conforms to required schema and constraints.
  *
- * This module exports functions to validate user role creation and update data.
+ * This module exports validation functions for user role creation and updates.
+ *
+ * Author: P2PDEVIDEO Team
+ * Date: 2024
  */
 
 /**
- * Validates the structure and content of a user role object for creation.
- * @param {Object} roleData - The user role data to validate.
- * @param {string} roleData.name - The name of the role. Required, non-empty string.
- * @param {string} [roleData.description] - Optional description of the role.
- * @param {Array<string>} [roleData.permissions] - Optional array of permissions as strings.
- * @returns {Object} - An object with isValid (boolean) and errors (array of string).
+ * Validates the role name.
+ * Role name must be a non-empty string and match allowed pattern.
+ *
+ * @param {string} roleName - The role name to validate.
+ * @returns {boolean} Returns true if valid, false otherwise.
  */
-function validateUserRoleCreation(roleData) {
+function isValidRoleName(roleName) {
+  if (typeof roleName !== 'string') return false;
+  const trimmed = roleName.trim();
+  if (trimmed.length === 0) return false;
+  // Allow only alphanumeric and spaces, hyphens, underscores
+  const roleNamePattern = /^[a-zA-Z0-9 _-]+$/;
+  return roleNamePattern.test(trimmed);
+}
+
+/**
+ * Validates the description of the role.
+ * Description is optional but if provided must be a string with max length 256.
+ *
+ * @param {string} description - The description to validate.
+ * @returns {boolean} Returns true if valid, false otherwise.
+ */
+function isValidDescription(description) {
+  if (description === undefined || description === null) return true; // optional
+  if (typeof description !== 'string') return false;
+  return description.length <= 256;
+}
+
+/**
+ * Validates permissions array.
+ * Permissions must be an array of non-empty strings.
+ *
+ * @param {Array<string>} permissions - Array of permission strings.
+ * @returns {boolean} Returns true if valid, false otherwise.
+ */
+function isValidPermissions(permissions) {
+  if (!Array.isArray(permissions)) return false;
+  if (permissions.length === 0) return false; // must have at least one permission
+  return permissions.every(p => typeof p === 'string' && p.trim().length > 0);
+}
+
+/**
+ * Validates the user role data object for creation or update.
+ * Expected fields: roleName, description (optional), permissions
+ *
+ * @param {Object} roleData - The user role data to validate.
+ * @param {string} roleData.roleName - The role name.
+ * @param {string} [roleData.description] - Optional description.
+ * @param {Array<string>} roleData.permissions - Array of permissions.
+ * @returns {Object} Validation result with isValid boolean and errors array.
+ */
+function validateUserRoleData(roleData) {
   const errors = [];
 
   if (!roleData || typeof roleData !== 'object') {
@@ -23,79 +70,16 @@ function validateUserRoleCreation(roleData) {
     return { isValid: false, errors };
   }
 
-  // Validate name
-  if (!roleData.name || typeof roleData.name !== 'string' || roleData.name.trim() === '') {
-    errors.push('Role name is required and must be a non-empty string.');
+  if (!isValidRoleName(roleData.roleName)) {
+    errors.push('Invalid or missing roleName. It must be a non-empty string with allowed characters.');
   }
 
-  // Validate description if provided
-  if (roleData.description !== undefined && typeof roleData.description !== 'string') {
-    errors.push('Role description must be a string if provided.');
+  if (!isValidDescription(roleData.description)) {
+    errors.push('Description must be a string with max length 256 characters if provided.');
   }
 
-  // Validate permissions if provided
-  if (roleData.permissions !== undefined) {
-    if (!Array.isArray(roleData.permissions)) {
-      errors.push('Permissions must be an array of strings if provided.');
-    } else {
-      const invalidPermissions = roleData.permissions.filter(
-        perm => typeof perm !== 'string' || perm.trim() === ''
-      );
-      if (invalidPermissions.length > 0) {
-        errors.push('All permissions must be non-empty strings.');
-      }
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-/**
- * Validates the structure and content of a user role object for update.
- * Allows partial updates; validates only provided fields.
- * @param {Object} updateData - The user role update data to validate.
- * @param {string} [updateData.name] - The name of the role, if updating. Must be non-empty string.
- * @param {string} [updateData.description] - Optional description of the role.
- * @param {Array<string>} [updateData.permissions] - Optional array of permissions.
- * @returns {Object} - An object with isValid (boolean) and errors (array of string).
- */
-function validateUserRoleUpdate(updateData) {
-  const errors = [];
-
-  if (!updateData || typeof updateData !== 'object') {
-    errors.push('Update data must be an object.');
-    return { isValid: false, errors };
-  }
-
-  // Validate name if provided
-  if ('name' in updateData) {
-    if (typeof updateData.name !== 'string' || updateData.name.trim() === '') {
-      errors.push('Role name must be a non-empty string if provided.');
-    }
-  }
-
-  // Validate description if provided
-  if ('description' in updateData) {
-    if (typeof updateData.description !== 'string') {
-      errors.push('Role description must be a string if provided.');
-    }
-  }
-
-  // Validate permissions if provided
-  if ('permissions' in updateData) {
-    if (!Array.isArray(updateData.permissions)) {
-      errors.push('Permissions must be an array of strings if provided.');
-    } else {
-      const invalidPermissions = updateData.permissions.filter(
-        perm => typeof perm !== 'string' || perm.trim() === ''
-      );
-      if (invalidPermissions.length > 0) {
-        errors.push('All permissions must be non-empty strings.');
-      }
-    }
+  if (!isValidPermissions(roleData.permissions)) {
+    errors.push('Permissions must be a non-empty array of non-empty strings.');
   }
 
   return {
@@ -105,6 +89,8 @@ function validateUserRoleUpdate(updateData) {
 }
 
 module.exports = {
-  validateUserRoleCreation,
-  validateUserRoleUpdate
+  isValidRoleName,
+  isValidDescription,
+  isValidPermissions,
+  validateUserRoleData
 };
