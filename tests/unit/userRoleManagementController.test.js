@@ -1,240 +1,223 @@
-import chai from 'chai';
-import sinon from 'sinon';
-import mongoose from 'mongoose';
-import UserRoleManagementController from '../../src/controllers/userRoleManagementController.js';
-import UserRole from '../../src/models/userRole.js';
+"use strict";
 
-const { expect } = chai;
+const chai = require("chai");
+const sinon = require("sinon");
+const expect = chai.expect;
 
-// Mock response and request objects
-const mockResponse = () => {
+const userRoleManagementController = require("../../src/controllers/userRoleManagementController");
+const UserRole = require("../../src/models/userRole");
+
+// Mock response object for Express
+function mockResponse() {
   const res = {};
   res.status = sinon.stub().returns(res);
   res.json = sinon.stub().returns(res);
   return res;
-};
+}
 
-const mockRequest = (data) => {
-  return data;
-};
+// Mock request object
+function mockRequest(body = {}, params = {}, query = {}) {
+  return {
+    body,
+    params,
+    query
+  };
+}
 
-// Clear stubs and mocks after each test
-describe('UserRoleManagementController', () => {
+describe("UserRoleManagementController", () => {
   afterEach(() => {
     sinon.restore();
   });
 
-  describe('getAllRoles', () => {
-    it('should return all user roles with status 200', async () => {
-      const roles = [
-        { _id: '1', name: 'admin' },
-        { _id: '2', name: 'user' },
+  describe("createUserRole", () => {
+    it("should create a new user role and return 201 status", async () => {
+      const req = mockRequest({ name: "admin", description: "Administrator role" });
+      const res = mockResponse();
+
+      const fakeSave = sinon.stub().resolves({ _id: "123", name: "admin", description: "Administrator role" });
+      sinon.stub(UserRole.prototype, "save").callsFake(fakeSave);
+
+      await userRoleManagementController.createUserRole(req, res);
+
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      const responseArg = res.json.getCall(0).args[0];
+      expect(responseArg).to.have.property("_id");
+      expect(responseArg.name).to.equal("admin");
+      expect(responseArg.description).to.equal("Administrator role");
+    });
+
+    it("should handle errors and return 500 status", async () => {
+      const req = mockRequest({ name: "admin" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole.prototype, "save").rejects(new Error("Database error"));
+
+      await userRoleManagementController.createUserRole(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("error");
+    });
+  });
+
+  describe("getUserRoleById", () => {
+    it("should return user role when found", async () => {
+      const req = mockRequest({}, { id: "123" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findById").resolves({ _id: "123", name: "admin", description: "Administrator role" });
+
+      await userRoleManagementController.getUserRoleById(req, res);
+
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      const responseArg = res.json.getCall(0).args[0];
+      expect(responseArg._id).to.equal("123");
+      expect(responseArg.name).to.equal("admin");
+    });
+
+    it("should return 404 if user role not found", async () => {
+      const req = mockRequest({}, { id: "nonexistent" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findById").resolves(null);
+
+      await userRoleManagementController.getUserRoleById(req, res);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("message").that.includes("not found");
+    });
+
+    it("should handle errors and return 500 status", async () => {
+      const req = mockRequest({}, { id: "123" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findById").rejects(new Error("DB error"));
+
+      await userRoleManagementController.getUserRoleById(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("error");
+    });
+  });
+
+  describe("updateUserRole", () => {
+    it("should update an existing user role and return updated role", async () => {
+      const req = mockRequest({ name: "moderator" }, { id: "123" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findByIdAndUpdate").resolves({ _id: "123", name: "moderator" });
+
+      await userRoleManagementController.updateUserRole(req, res);
+
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      const responseArg = res.json.getCall(0).args[0];
+      expect(responseArg.name).to.equal("moderator");
+    });
+
+    it("should return 404 if role to update not found", async () => {
+      const req = mockRequest({ name: "moderator" }, { id: "nonexistent" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findByIdAndUpdate").resolves(null);
+
+      await userRoleManagementController.updateUserRole(req, res);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("message").that.includes("not found");
+    });
+
+    it("should handle errors and return 500 status", async () => {
+      const req = mockRequest({ name: "moderator" }, { id: "123" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findByIdAndUpdate").rejects(new Error("DB error"));
+
+      await userRoleManagementController.updateUserRole(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("error");
+    });
+  });
+
+  describe("deleteUserRole", () => {
+    it("should delete the user role and return success message", async () => {
+      const req = mockRequest({}, { id: "123" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findByIdAndDelete").resolves({ _id: "123" });
+
+      await userRoleManagementController.deleteUserRole(req, res);
+
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("message").that.includes("deleted");
+    });
+
+    it("should return 404 if role to delete not found", async () => {
+      const req = mockRequest({}, { id: "nonexistent" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findByIdAndDelete").resolves(null);
+
+      await userRoleManagementController.deleteUserRole(req, res);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("message").that.includes("not found");
+    });
+
+    it("should handle errors and return 500 status", async () => {
+      const req = mockRequest({}, { id: "123" });
+      const res = mockResponse();
+
+      sinon.stub(UserRole, "findByIdAndDelete").rejects(new Error("DB error"));
+
+      await userRoleManagementController.deleteUserRole(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0]).to.have.property("error");
+    });
+  });
+
+  describe("listUserRoles", () => {
+    it("should return list of user roles", async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+
+      const fakeRoles = [
+        { _id: "1", name: "admin" },
+        { _id: "2", name: "user" }
       ];
+      sinon.stub(UserRole, "find").resolves(fakeRoles);
 
-      sinon.stub(UserRole, 'find').resolves(roles);
+      await userRoleManagementController.listUserRoles(req, res);
 
-      const req = mockRequest({});
-      const res = mockResponse();
-
-      await UserRoleManagementController.getAllRoles(req, res);
-
-      expect(res.status.calledOnceWith(200)).to.be.true;
-      expect(res.json.calledOnceWith(roles)).to.be.true;
-    });
-
-    it('should handle errors and return status 500', async () => {
-      sinon.stub(UserRole, 'find').rejects(new Error('Database error'));
-
-      const req = mockRequest({});
-      const res = mockResponse();
-
-      await UserRoleManagementController.getAllRoles(req, res);
-
-      expect(res.status.calledOnceWith(500)).to.be.true;
+      expect(res.status.calledWith(200)).to.be.true;
       expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-  });
-
-  describe('createRole', () => {
-    it('should create a new role and return it with status 201', async () => {
-      const newRoleData = { name: 'moderator' };
-      const savedRole = { _id: mongoose.Types.ObjectId(), name: 'moderator' };
-
-      sinon.stub(UserRole.prototype, 'save').resolves(savedRole);
-
-      const req = mockRequest({ body: newRoleData });
-      const res = mockResponse();
-
-      await UserRoleManagementController.createRole(req, res);
-
-      expect(res.status.calledOnceWith(201)).to.be.true;
-      expect(res.json.calledOnceWith(savedRole)).to.be.true;
+      const responseArg = res.json.getCall(0).args[0];
+      expect(responseArg).to.be.an("array").with.lengthOf(2);
+      expect(responseArg[0].name).to.equal("admin");
     });
 
-    it('should handle validation errors and return status 400', async () => {
-      sinon.stub(UserRole.prototype, 'save').rejects({ name: 'ValidationError', message: 'Name is required' });
-
-      const req = mockRequest({ body: {} });
+    it("should handle errors and return 500 status", async () => {
+      const req = mockRequest();
       const res = mockResponse();
 
-      await UserRoleManagementController.createRole(req, res);
+      sinon.stub(UserRole, "find").rejects(new Error("DB error"));
 
-      expect(res.status.calledOnceWith(400)).to.be.true;
+      await userRoleManagementController.listUserRoles(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
       expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-
-    it('should handle other errors and return status 500', async () => {
-      sinon.stub(UserRole.prototype, 'save').rejects(new Error('Unexpected error'));
-
-      const req = mockRequest({ body: { name: 'test' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.createRole(req, res);
-
-      expect(res.status.calledOnceWith(500)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-  });
-
-  describe('getRoleById', () => {
-    it('should return role by id with status 200', async () => {
-      const roleId = mongoose.Types.ObjectId();
-      const role = { _id: roleId, name: 'admin' };
-
-      sinon.stub(UserRole, 'findById').resolves(role);
-
-      const req = mockRequest({ params: { id: roleId.toString() } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.getRoleById(req, res);
-
-      expect(res.status.calledOnceWith(200)).to.be.true;
-      expect(res.json.calledOnceWith(role)).to.be.true;
-    });
-
-    it('should return 404 if role not found', async () => {
-      sinon.stub(UserRole, 'findById').resolves(null);
-
-      const req = mockRequest({ params: { id: 'invalidid' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.getRoleById(req, res);
-
-      expect(res.status.calledOnceWith(404)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-
-    it('should handle errors and return status 500', async () => {
-      sinon.stub(UserRole, 'findById').rejects(new Error('Database error'));
-
-      const req = mockRequest({ params: { id: 'someid' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.getRoleById(req, res);
-
-      expect(res.status.calledOnceWith(500)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-  });
-
-  describe('updateRole', () => {
-    it('should update role successfully and return updated role', async () => {
-      const roleId = mongoose.Types.ObjectId();
-      const updateData = { name: 'superadmin' };
-      const updatedRole = { _id: roleId, name: 'superadmin' };
-
-      sinon.stub(UserRole, 'findByIdAndUpdate').resolves(updatedRole);
-
-      const req = mockRequest({ params: { id: roleId.toString() }, body: updateData });
-      const res = mockResponse();
-
-      await UserRoleManagementController.updateRole(req, res);
-
-      expect(res.status.calledOnceWith(200)).to.be.true;
-      expect(res.json.calledOnceWith(updatedRole)).to.be.true;
-    });
-
-    it('should return 404 if role to update not found', async () => {
-      sinon.stub(UserRole, 'findByIdAndUpdate').resolves(null);
-
-      const req = mockRequest({ params: { id: 'nonexistentid' }, body: { name: 'test' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.updateRole(req, res);
-
-      expect(res.status.calledOnceWith(404)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-
-    it('should handle errors and return status 500', async () => {
-      sinon.stub(UserRole, 'findByIdAndUpdate').rejects(new Error('Database error'));
-
-      const req = mockRequest({ params: { id: 'id' }, body: { name: 'test' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.updateRole(req, res);
-
-      expect(res.status.calledOnceWith(500)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-  });
-
-  describe('deleteRole', () => {
-    it('should delete role and return success message', async () => {
-      const roleId = mongoose.Types.ObjectId();
-      const deletedRole = { _id: roleId, name: 'admin' };
-
-      sinon.stub(UserRole, 'findByIdAndDelete').resolves(deletedRole);
-
-      const req = mockRequest({ params: { id: roleId.toString() } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.deleteRole(req, res);
-
-      expect(res.status.calledOnceWith(200)).to.be.true;
-      expect(res.json.calledOnceWith({ message: 'Role deleted successfully' })).to.be.true;
-    });
-
-    it('should return 404 if role to delete not found', async () => {
-      sinon.stub(UserRole, 'findByIdAndDelete').resolves(null);
-
-      const req = mockRequest({ params: { id: 'nonexistentid' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.deleteRole(req, res);
-
-      expect(res.status.calledOnceWith(404)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
-    });
-
-    it('should handle errors and return status 500', async () => {
-      sinon.stub(UserRole, 'findByIdAndDelete').rejects(new Error('Database error'));
-
-      const req = mockRequest({ params: { id: 'someid' } });
-      const res = mockResponse();
-
-      await UserRoleManagementController.deleteRole(req, res);
-
-      expect(res.status.calledOnceWith(500)).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-      const errorResponse = res.json.getCall(0).args[0];
-      expect(errorResponse).to.have.property('error');
+      expect(res.json.getCall(0).args[0]).to.have.property("error");
     });
   });
 });
