@@ -1,11 +1,13 @@
 /**
  * Middleware for validating user role data in requests.
- * Ensures that the role data is present and valid before proceeding.
+ * Ensures that required fields are present and valid.
+ *
+ * This middleware can be used in routes handling user role creation or updates.
  */
 
-const { body, param, validationResult } = require('express-validator');
+const { body, validationResult, param } = require('express-validator');
 
-// Validation rules for creating or updating user roles
+// Validation rules for creating or updating a user role
 const validateUserRole = [
   body('roleName')
     .exists().withMessage('Role name is required')
@@ -13,41 +15,42 @@ const validateUserRole = [
     .isLength({ min: 3, max: 50 }).withMessage('Role name must be between 3 and 50 characters'),
 
   body('permissions')
-    .exists().withMessage('Permissions are required')
-    .isArray().withMessage('Permissions must be an array')
+    .optional()
+    .isArray().withMessage('Permissions must be an array of strings')
     .custom((permissions) => {
-      if (permissions.length === 0) {
-        throw new Error('Permissions array cannot be empty');
-      }
-      // Optional: further validation on permissions content can be added here
-      return true;
-    }),
+      return permissions.every(p => typeof p === 'string');
+    }).withMessage('Each permission must be a string'),
 
   // Optional description field
   body('description')
     .optional()
     .isString().withMessage('Description must be a string')
-    .isLength({ max: 200 }).withMessage('Description cannot exceed 200 characters'),
+    .isLength({ max: 255 }).withMessage('Description cannot exceed 255 characters'),
 
-  // Middleware to handle validation result
+  // Middleware to check validation results
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({
+        errors: errors.array().map(err => ({ field: err.param, message: err.msg }))
+      });
     }
     next();
   }
 ];
 
-// Validation for role ID param in routes (e.g., for update or delete operations)
-const validateRoleIdParam = [
-  param('roleId')
+// Validation rule for user role ID parameter
+const validateUserRoleIdParam = [
+  param('id')
     .exists().withMessage('Role ID parameter is required')
     .isMongoId().withMessage('Role ID must be a valid MongoDB ObjectId'),
+
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({
+        errors: errors.array().map(err => ({ field: err.param, message: err.msg }))
+      });
     }
     next();
   }
@@ -55,5 +58,5 @@ const validateRoleIdParam = [
 
 module.exports = {
   validateUserRole,
-  validateRoleIdParam
+  validateUserRoleIdParam
 };
