@@ -1,72 +1,101 @@
-// src/api/userRoleManagement.js
+/**
+ * src/api/userRoleManagement.js
+ *
+ * API handlers for managing user roles.
+ *
+ * Provides CRUD operations for user roles and role assignment.
+ *
+ * This module exports functions to handle requests related to user role management,
+ * interacting with the userRoleManagementController for business logic.
+ */
 
-import express from 'express';
-import userRoleManagementController from '../controllers/userRoleManagementController.js';
-import authMiddleware from '../middleware/authMiddleware.js';
-import roleValidationMiddleware from '../middleware/roleValidationMiddleware.js';
-
+const express = require('express');
 const router = express.Router();
 
-/**
- * @route   GET /api/user-roles
- * @desc    Get all user roles
- * @access  Protected (admin or authorized roles)
- */
-router.get(
-  '/',
-  authMiddleware.verifyToken,
-  roleValidationMiddleware.ensureAdmin,
-  userRoleManagementController.getAllUserRoles
-);
+const userRoleManagementController = require('../controllers/userRoleManagementController');
 
 /**
- * @route   GET /api/user-roles/:id
- * @desc    Get user role by ID
- * @access  Protected (admin or authorized roles)
+ * GET /user-roles
+ * Retrieve a list of all user roles.
  */
-router.get(
-  '/:id',
-  authMiddleware.verifyToken,
-  roleValidationMiddleware.ensureAdmin,
-  userRoleManagementController.getUserRoleById
-);
+router.get('/user-roles', async (req, res) => {
+  try {
+    const roles = await userRoleManagementController.getAllRoles();
+    res.status(200).json(roles);
+  } catch (error) {
+    console.error('Error fetching user roles:', error);
+    res.status(500).json({ message: 'Failed to retrieve user roles' });
+  }
+});
 
 /**
- * @route   POST /api/user-roles
- * @desc    Create a new user role
- * @access  Protected (admin only)
+ * GET /user-roles/:id
+ * Retrieve a user role by ID.
  */
-router.post(
-  '/',
-  authMiddleware.verifyToken,
-  roleValidationMiddleware.ensureAdmin,
-  roleValidationMiddleware.validateRoleCreation,
-  userRoleManagementController.createUserRole
-);
+router.get('/user-roles/:id', async (req, res) => {
+  try {
+    const roleId = req.params.id;
+    const role = await userRoleManagementController.getRoleById(roleId);
+    if (!role) {
+      return res.status(404).json({ message: 'User role not found' });
+    }
+    res.status(200).json(role);
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+    res.status(500).json({ message: 'Failed to retrieve user role' });
+  }
+});
 
 /**
- * @route   PUT /api/user-roles/:id
- * @desc    Update an existing user role
- * @access  Protected (admin only)
+ * POST /user-roles
+ * Create a new user role.
  */
-router.put(
-  '/:id',
-  authMiddleware.verifyToken,
-  roleValidationMiddleware.ensureAdmin,
-  roleValidationMiddleware.validateRoleUpdate,
-  userRoleManagementController.updateUserRole
-);
+router.post('/user-roles', async (req, res) => {
+  try {
+    const roleData = req.body;
+    const newRole = await userRoleManagementController.createRole(roleData);
+    res.status(201).json(newRole);
+  } catch (error) {
+    console.error('Error creating user role:', error);
+    res.status(500).json({ message: 'Failed to create user role' });
+  }
+});
 
 /**
- * @route   DELETE /api/user-roles/:id
- * @desc    Delete a user role
- * @access  Protected (admin only)
+ * PUT /user-roles/:id
+ * Update an existing user role by ID.
  */
-router.delete(
-  '/:id',
-  authMiddleware.verifyToken,
-  roleValidationMiddleware.ensureAdmin,
-  userRoleManagementController.deleteUserRole
-);
+router.put('/user-roles/:id', async (req, res) => {
+  try {
+    const roleId = req.params.id;
+    const updateData = req.body;
+    const updatedRole = await userRoleManagementController.updateRole(roleId, updateData);
+    if (!updatedRole) {
+      return res.status(404).json({ message: 'User role not found' });
+    }
+    res.status(200).json(updatedRole);
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ message: 'Failed to update user role' });
+  }
+});
 
-export default router;
+/**
+ * DELETE /user-roles/:id
+ * Delete a user role by ID.
+ */
+router.delete('/user-roles/:id', async (req, res) => {
+  try {
+    const roleId = req.params.id;
+    const deleted = await userRoleManagementController.deleteRole(roleId);
+    if (!deleted) {
+      return res.status(404).json({ message: 'User role not found' });
+    }
+    res.status(200).json({ message: 'User role deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user role:', error);
+    res.status(500).json({ message: 'Failed to delete user role' });
+  }
+});
+
+module.exports = router;
