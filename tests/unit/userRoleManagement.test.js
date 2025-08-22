@@ -1,14 +1,33 @@
-// tests/unit/userRoleManagement.test.js
+/**
+ * Unit tests for user role management functionality
+ *
+ * This test suite covers the core functionalities of the userRoleManagement controller,
+ * including creating, retrieving, updating, and deleting user roles.
+ * It ensures that roles are managed correctly and errors are handled properly.
+ */
 
-import chai from 'chai';
-import sinon from 'sinon';
-import * as userRoleManagement from '../../src/api/userRoleManagement.js';
+const { expect } = require('chai');
+const sinon = require('sinon');
 
-const { expect } = chai;
+const userRoleManagement = require('../../src/controllers/userRoleManagement');
+const userRoleModel = require('../../src/models/userRole');
 
-describe('User Role Management API', () => {
-  let sandbox;
+// Mock data for testing
+const mockRole = {
+  _id: 'role123',
+  name: 'admin',
+  permissions: ['read', 'write', 'delete'],
+};
 
+const mockRoleCreateInput = {
+  name: 'moderator',
+  permissions: ['read', 'write'],
+};
+
+// Sinon sandbox for restoring mocks after each test
+let sandbox;
+
+describe('UserRoleManagement Controller', () => {
   beforeEach(() => {
     sandbox = sinon.createSandbox();
   });
@@ -18,108 +37,184 @@ describe('User Role Management API', () => {
   });
 
   describe('createRole', () => {
-    it('should create a new role successfully', async () => {
-      // Stub the database or model interaction inside createRole
-      const newRole = { name: 'admin', permissions: ['read', 'write'] };
-      const createStub = sandbox.stub(userRoleManagement, 'createRole').resolves(newRole);
+    it('should create and return a new role', async () => {
+      sandbox.stub(userRoleModel, 'create').resolves(mockRole);
 
-      const result = await userRoleManagement.createRole(newRole);
-      expect(createStub.calledOnce).to.be.true;
-      expect(result).to.deep.equal(newRole);
+      const req = { body: mockRoleCreateInput };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.createRole(req, res);
+
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('name', 'admin'))).to.be.true;
     });
 
-    it('should throw an error if role data is invalid', async () => {
-      const invalidRole = { permissions: ['read'] }; // missing name
-      sandbox.stub(userRoleManagement, 'createRole').throws(new Error('Invalid role data'));
+    it('should handle errors during role creation', async () => {
+      sandbox.stub(userRoleModel, 'create').rejects(new Error('DB error'));
 
-      try {
-        await userRoleManagement.createRole(invalidRole);
-        throw new Error('Test failed: error was not thrown');
-      } catch (err) {
-        expect(err.message).to.equal('Invalid role data');
-      }
+      const req = { body: mockRoleCreateInput };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.createRole(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
     });
   });
 
-  describe('getRole', () => {
-    it('should return role data for existing role', async () => {
-      const roleId = '12345';
-      const roleData = { id: roleId, name: 'user', permissions: ['read'] };
-      sandbox.stub(userRoleManagement, 'getRole').resolves(roleData);
+  describe('getRoleById', () => {
+    it('should return role by ID', async () => {
+      sandbox.stub(userRoleModel, 'findById').resolves(mockRole);
 
-      const result = await userRoleManagement.getRole(roleId);
-      expect(result).to.deep.equal(roleData);
+      const req = { params: { id: 'role123' } };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.getRoleById(req, res);
+
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.calledWith(mockRole)).to.be.true;
     });
 
-    it('should return null if role does not exist', async () => {
-      const roleId = 'nonexistent';
-      sandbox.stub(userRoleManagement, 'getRole').resolves(null);
+    it('should return 404 if role not found', async () => {
+      sandbox.stub(userRoleModel, 'findById').resolves(null);
 
-      const result = await userRoleManagement.getRole(roleId);
-      expect(result).to.be.null;
+      const req = { params: { id: 'nonexistent' } };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.getRoleById(req, res);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
+    });
+
+    it('should handle errors during role retrieval', async () => {
+      sandbox.stub(userRoleModel, 'findById').rejects(new Error('DB error'));
+
+      const req = { params: { id: 'role123' } };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.getRoleById(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
     });
   });
 
   describe('updateRole', () => {
-    it('should update role data successfully', async () => {
-      const roleId = '12345';
-      const updateData = { permissions: ['read', 'write', 'delete'] };
-      const updatedRole = { id: roleId, name: 'user', ...updateData };
-      sandbox.stub(userRoleManagement, 'updateRole').resolves(updatedRole);
+    it('should update and return the role', async () => {
+      sandbox.stub(userRoleModel, 'findByIdAndUpdate').resolves(mockRole);
 
-      const result = await userRoleManagement.updateRole(roleId, updateData);
-      expect(result).to.deep.equal(updatedRole);
+      const req = {
+        params: { id: 'role123' },
+        body: { name: 'admin-updated', permissions: ['read', 'write'] },
+      };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.updateRole(req, res);
+
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.calledWith(mockRole)).to.be.true;
     });
 
-    it('should throw an error if update data is invalid', async () => {
-      const roleId = '12345';
-      const invalidData = { invalidField: true };
-      sandbox.stub(userRoleManagement, 'updateRole').throws(new Error('Invalid update data'));
+    it('should return 404 if role to update not found', async () => {
+      sandbox.stub(userRoleModel, 'findByIdAndUpdate').resolves(null);
 
-      try {
-        await userRoleManagement.updateRole(roleId, invalidData);
-        throw new Error('Test failed: error was not thrown');
-      } catch (err) {
-        expect(err.message).to.equal('Invalid update data');
-      }
+      const req = {
+        params: { id: 'nonexistent' },
+        body: { name: 'admin-updated' },
+      };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.updateRole(req, res);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
+    });
+
+    it('should handle errors during role update', async () => {
+      sandbox.stub(userRoleModel, 'findByIdAndUpdate').rejects(new Error('DB error'));
+
+      const req = {
+        params: { id: 'role123' },
+        body: { name: 'admin-updated' },
+      };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.updateRole(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
     });
   });
 
   describe('deleteRole', () => {
-    it('should delete role successfully', async () => {
-      const roleId = '12345';
-      sandbox.stub(userRoleManagement, 'deleteRole').resolves(true);
+    it('should delete the role and return success message', async () => {
+      sandbox.stub(userRoleModel, 'findByIdAndDelete').resolves(mockRole);
 
-      const result = await userRoleManagement.deleteRole(roleId);
-      expect(result).to.be.true;
+      const req = { params: { id: 'role123' } };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.deleteRole(req, res);
+
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('message'))).to.be.true;
     });
 
-    it('should return false if role does not exist to delete', async () => {
-      const roleId = 'nonexistent';
-      sandbox.stub(userRoleManagement, 'deleteRole').resolves(false);
+    it('should return 404 if role to delete not found', async () => {
+      sandbox.stub(userRoleModel, 'findByIdAndDelete').resolves(null);
 
-      const result = await userRoleManagement.deleteRole(roleId);
-      expect(result).to.be.false;
-    });
-  });
+      const req = { params: { id: 'nonexistent' } };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
 
-  describe('listRoles', () => {
-    it('should return a list of roles', async () => {
-      const roles = [
-        { id: '1', name: 'admin', permissions: ['all'] },
-        { id: '2', name: 'user', permissions: ['read'] },
-      ];
-      sandbox.stub(userRoleManagement, 'listRoles').resolves(roles);
+      await userRoleManagement.deleteRole(req, res);
 
-      const result = await userRoleManagement.listRoles();
-      expect(result).to.deep.equal(roles);
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
     });
 
-    it('should return empty array if no roles exist', async () => {
-      sandbox.stub(userRoleManagement, 'listRoles').resolves([]);
+    it('should handle errors during role deletion', async () => {
+      sandbox.stub(userRoleModel, 'findByIdAndDelete').rejects(new Error('DB error'));
 
-      const result = await userRoleManagement.listRoles();
-      expect(result).to.be.an('array').that.is.empty;
+      const req = { params: { id: 'role123' } };
+      const res = {
+        status: sandbox.stub().returnsThis(),
+        json: sandbox.stub(),
+      };
+
+      await userRoleManagement.deleteRole(req, res);
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledWith(sinon.match.has('error'))).to.be.true;
     });
   });
 });
