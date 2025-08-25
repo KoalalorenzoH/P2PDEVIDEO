@@ -1,48 +1,33 @@
 /**
- * Middleware for validating user role requests
- *
- * This middleware uses the role validation utility functions to validate
- * incoming requests related to user role management.
- * It ensures that the request payloads conform to expected formats and constraints.
- *
- * If validation fails, it responds with HTTP 400 and error details.
- * Otherwise, it passes control to the next middleware or route handler.
+ * Middleware for validating user role requests.
+ * Ensures that the request body contains valid role data before proceeding.
  */
 
-const { validateRoleData, validateRoleId } = require('../utils/roleValidation');
+const { validateRoleData } = require('../utils/roleValidation');
 
 /**
- * Middleware to validate role creation or update data in request body
+ * Middleware function to validate user role data in the request.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
-function validateRoleRequest(req, res, next) {
-  const { error } = validateRoleData(req.body);
-  if (error) {
+function roleValidationMiddleware(req, res, next) {
+  const { body } = req;
+
+  // Validate the role data using utility function
+  const { isValid, errors } = validateRoleData(body);
+
+  if (!isValid) {
+    // If validation fails, respond with 400 Bad Request and error details
     return res.status(400).json({
-      status: 'error',
+      success: false,
       message: 'Invalid role data',
-      details: error.details
+      errors
     });
   }
+
+  // If validation passes, proceed to the next middleware or route handler
   next();
 }
 
-/**
- * Middleware to validate role ID parameter in request params
- */
-function validateRoleIdParam(req, res, next) {
-  const { roleId } = req.params;
-  const { error } = validateRoleId(roleId);
-  if (error) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Invalid role ID',
-      details: error.details
-    });
-  }
-  next();
-}
-
-module.exports = {
-  validateRoleRequest,
-  validateRoleIdParam
-};
+module.exports = roleValidationMiddleware;
